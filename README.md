@@ -28,7 +28,7 @@ Traditional Network Intrusion Detection Systems (NIDS) perform static flow class
 * **$K$-Step Autoregressor**: Projects state vectors and infiltration probabilities $1 \dots 10$ steps into the future.
 * **Early Warning Lead Advantage**: Provides pre-compromise alerts before kill-chain completion.
 
-### 2. 🛡️ SOC Risk Prioritization, Asset Criticality & Playbooks (NEW)
+### 2. 🛡️ SOC Risk Prioritization, Asset Criticality & Playbooks
 * **Asset Criticality Management**: Categorizes target hosts into Tier 1 (Mission Critical — Domain Controller, Core Database), Tier 2 (Business Essential), and Tier 3 (Standard Endpoints).
 * **Composite Risk Prioritization**: Computes Priority Levels (**P1 - CRITICAL**, **P2 - HIGH**, **P3 - MEDIUM**, **P4 - LOW**) with SLA response windows.
 * **Automated Playbook Actions**: Generates step-by-step containment actions (firewall block rules, subnet micro-segmentation, DNS sinkholing, host isolation).
@@ -60,6 +60,9 @@ SIH26153/
 ├── app.py                      # Standalone Streamlit Web Dashboard
 ├── README.md                   # System Documentation
 ├── Features.md                 # Technical Specifications & Feature Matrix
+├── render.yaml                 # Render Infrastructure-as-Code Manifest
+├── Dockerfile                  # Container Build Configuration
+├── Procfile                    # Web Process Start Command
 ├── requirements.txt            # Python Dependencies
 ├── src/
 │   ├── __init__.py             # Package Initializer
@@ -73,28 +76,49 @@ SIH26153/
 
 ---
 
-## 🛠️ Installation & Setup
+## 🚀 Production Deployment Guide
 
-### 1. Prerequisites
-* Python 3.10 or higher
-* Git
+### 💡 Vercel vs Render Evaluation
+* **Vercel**: Vercel is optimized for static sites, Next.js, and serverless short-lived functions. Streamlit requires a persistent, long-running Python process with active WebSocket connections, which is **not supported on Vercel's serverless architecture**.
+* **Render (RECOMMENDED)**: **Render** provides native support for long-running Python Web Services with persistent WebSocket support, automated GitHub continuous deployment on `git push`, and free-tier compatibility!
 
-### 2. Install Dependencies
+---
+
+### 🌐 Deploying to Render (2-Minute Setup)
+
+1. Sign in to [Render.com](https://render.com) using your GitHub account (`Asachdeva001`).
+2. Click **New +** $\to$ **Web Service**.
+3. Connect your private repository: `Asachdeva001/SIH26153`.
+4. Render will automatically detect `render.yaml` or you can set:
+   * **Name**: `sih26153-attack-forecasting`
+   * **Environment**: `Python 3`
+   * **Build Command**: `pip install -r requirements.txt`
+   * **Start Command**: `streamlit run app.py --server.port $PORT --server.address 0.0.0.0 --server.headless true`
+5. Click **Create Web Service**. Your application will be live in 2 minutes!
+
+---
+
+### ☁️ Alternative Option: Streamlit Community Cloud (100% Free)
+1. Go to [share.streamlit.io](https://share.streamlit.io/).
+2. Click **New App** $\to$ Select repo `Asachdeva001/SIH26153`, branch `main`, main file `app.py`.
+3. Click **Deploy!**
+
+---
+
+## 🛠️ Local Installation & Development
+
+### 1. Install Dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
----
-
-## 🚀 Running the System
-
-### Launch Interactive Web Dashboard
+### 2. Launch Local Dashboard
 ```bash
 streamlit run app.py
 ```
 Open your browser at `http://localhost:8501`.
 
-### Run Automated Unit Test Suite
+### 3. Run Automated Unit Test Suite
 ```bash
 python -m pytest tests/test_pipeline.py -v
 ```
@@ -102,20 +126,4 @@ python -m pytest tests/test_pipeline.py -v
 ---
 
 ## 📄 Exporting Security Audit Reports
-From the **Audit Report** tab, SOC incident responders can export comprehensive threat intelligence reports containing:
-* Target Asset Criticality & Risk Priority Level (P1-P4)
-* Observed and projected peak risk scores
-* Active and forecasted MITRE ATT&CK phases
-* Primary driving telemetry metrics & cyber rationale narratives
-* Step-by-step recommended containment playbooks
-
----
-
-## ⚙️ Tech Stack
-* **Language**: Python 3.10+
-* **Deep Learning Framework**: PyTorch
-* **Machine Learning & Metrics**: Scikit-Learn, SciPy, NumPy, Pandas
-* **Explainability (XAI)**: SHAP
-* **Packet Parsing**: Scapy
-* **Frontend UI & Visuals**: Streamlit, Plotly Express
-* **Testing**: Pytest
+From the **Audit Report** tab, SOC incident responders can export comprehensive threat intelligence reports in JSON format.
