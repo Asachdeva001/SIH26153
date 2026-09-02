@@ -20,137 +20,276 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom Government & SOC Grade Portal CSS Theme
+# Custom Government & SOC Cyber Command Dark Theme
 st.markdown("""
 <style>
-    /* Clean White Government Canvas */
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap');
+
+    /* High-Tech Cyber Command Canvas */
     .stApp {
-        background-color: #f8fafc;
-        color: #0f172a;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        background: radial-gradient(circle at 50% -10%, #0d162a 0%, #070c18 55%, #03060d 100%);
+        background-attachment: fixed;
+        color: #e2e8f0;
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     }
-    
-    /* Official Government Dark Header Banner */
+
+    /* Subtle Cybernetic Grid Overlay */
+    .stApp::before {
+        content: "";
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background-image: 
+            radial-gradient(rgba(56, 189, 248, 0.07) 1px, transparent 1px),
+            linear-gradient(to right, rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+        background-size: 32px 32px, 64px 64px, 64px 64px;
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+        background: #070c18;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: #1e293b;
+        border-radius: 4px;
+        border: 1px solid rgba(56, 189, 248, 0.2);
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: #38bdf8;
+    }
+
+    /* High-Tech Cyber Command Header Banner */
     .gov-header {
-        background: #0f172a;
-        border-bottom: 3px solid #1e293b;
-        padding: 20px 28px;
-        margin-bottom: 24px;
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(30, 41, 59, 0.7) 100%);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(56, 189, 248, 0.25);
+        border-top: 3px solid #38bdf8;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 25px rgba(56, 189, 248, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        padding: 22px 30px;
+        margin-bottom: 28px;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        border-radius: 4px;
-        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+        border-radius: 14px;
+        position: relative;
+        overflow: hidden;
     }
-    
+
+    .gov-header::after {
+        content: "";
+        position: absolute;
+        top: 0; left: -100%; width: 50%; height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.12), transparent);
+        animation: scanline 6s infinite linear;
+    }
+
+    @keyframes scanline {
+        0% { left: -50%; }
+        100% { left: 150%; }
+    }
+
     .gov-title {
-        color: #ffffff;
-        font-size: 1.5rem;
+        font-family: 'Orbitron', sans-serif;
+        background: linear-gradient(90deg, #ffffff 0%, #38bdf8 50%, #a855f7 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-size: 1.6rem;
         font-weight: 900;
-        letter-spacing: 1px;
+        letter-spacing: 2px;
         text-transform: uppercase;
         margin: 0;
+        filter: drop-shadow(0 0 12px rgba(56, 189, 248, 0.3));
     }
-    
+
     .gov-subtitle {
-        color: #cbd5e1;
-        font-size: 0.85rem;
-        letter-spacing: 0.5px;
-        margin-top: 4px;
+        font-family: 'JetBrains Mono', monospace;
+        color: #94a3b8;
+        font-size: 0.78rem;
+        letter-spacing: 1px;
+        margin-top: 6px;
     }
 
     .gov-seal {
-        border: 1.5px solid #ffffff;
-        padding: 8px 16px;
+        border: 1px solid rgba(56, 189, 248, 0.4);
+        padding: 8px 18px;
         font-size: 0.75rem;
-        font-weight: 800;
+        font-family: 'JetBrains Mono', monospace;
+        font-weight: 700;
         letter-spacing: 1.5px;
-        color: #ffffff;
-        background: #1e293b;
+        color: #38bdf8;
+        background: rgba(15, 23, 42, 0.8);
         text-transform: uppercase;
-        border-radius: 2px;
+        border-radius: 20px;
+        box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
+        display: flex;
+        align-items: center;
+        gap: 8px;
     }
-    
-    /* Sidebar Styling */
+
+    .pulse-dot {
+        width: 8px;
+        height: 8px;
+        background-color: #10b981;
+        border-radius: 50%;
+        box-shadow: 0 0 10px #10b981;
+        display: inline-block;
+        animation: pulse-green 1.8s infinite;
+    }
+
+    @keyframes pulse-green {
+        0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+        70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+        100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+
+    /* Sidebar Dark Futuristic Glass Styling */
     [data-testid="stSidebar"] {
-        background-color: #f1f5f9;
-        border-right: 1px solid #cbd5e1;
+        background-color: rgba(7, 12, 24, 0.95) !important;
+        border-right: 1px solid rgba(56, 189, 248, 0.15) !important;
+        backdrop-filter: blur(12px);
     }
-    
-    /* Crisp Executive Metric Cards - Guaranteed Equal Height & Alignment */
+
+    [data-testid="stSidebar"] * {
+        color: #cbd5e1;
+    }
+
+    /* Cyber Executive HUD Metric Cards */
     .gov-card {
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-top: 4px solid #0f172a;
-        padding: 18px;
+        background: rgba(15, 23, 42, 0.65);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        border: 1px solid rgba(56, 189, 248, 0.2);
+        border-top: 3px solid #38bdf8;
+        padding: 20px;
         margin-bottom: 12px;
-        border-radius: 4px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-        height: 145px;
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        height: 148px;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
         box-sizing: border-box;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
     }
-    
+
+    .gov-card:hover {
+        transform: translateY(-4px);
+        border-color: rgba(56, 189, 248, 0.5);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6), 0 0 20px rgba(56, 189, 248, 0.25);
+    }
+
     .gov-card-title {
-        color: #475569;
-        font-size: 0.75rem;
+        color: #38bdf8;
+        font-family: 'Orbitron', sans-serif;
+        font-size: 0.72rem;
         font-weight: 800;
         text-transform: uppercase;
-        letter-spacing: 1px;
+        letter-spacing: 1.5px;
         margin-bottom: 4px;
     }
-    
+
     .gov-card-value {
-        font-size: 1.8rem;
+        font-family: 'Orbitron', sans-serif;
+        font-size: 1.85rem;
         font-weight: 900;
-        color: #0f172a;
+        color: #ffffff;
         letter-spacing: -0.5px;
         line-height: 1.2;
+        text-shadow: 0 0 12px rgba(255, 255, 255, 0.2);
     }
-    
+
     .gov-card-sub {
-        font-size: 0.75rem;
-        color: #64748b;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.72rem;
+        color: #94a3b8;
         margin-top: 4px;
         font-weight: 600;
     }
 
-    /* Tab Styling */
+    /* Sci-Fi Pill Tab Navigation */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 6px;
-        background-color: #e2e8f0;
-        padding: 6px;
-        border: 1px solid #cbd5e1;
-        border-radius: 4px;
+        gap: 8px;
+        background-color: rgba(15, 23, 42, 0.7);
+        padding: 8px;
+        border: 1px solid rgba(56, 189, 248, 0.2);
+        border-radius: 12px;
+        backdrop-filter: blur(12px);
     }
-    
+
     .stTabs [data-baseweb="tab"] {
-        height: 42px;
-        border-radius: 2px;
-        color: #334155;
+        height: 44px;
+        border-radius: 8px;
+        color: #94a3b8;
         font-weight: 700;
         font-size: 0.85rem;
         text-transform: uppercase;
         border: 1px solid transparent;
-    }
-    
-    .stTabs [aria-selected="true"] {
-        background-color: #0f172a !important;
-        color: #ffffff !important;
-        font-weight: 900 !important;
-        border: 1px solid #0f172a !important;
+        transition: all 0.25s ease;
+        font-family: 'Plus Jakarta Sans', sans-serif;
     }
 
-    /* SOC Response Playbook Card */
+    .stTabs [data-baseweb="tab"]:hover {
+        color: #38bdf8;
+        background: rgba(56, 189, 248, 0.1);
+    }
+
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(135deg, #0284c7 0%, #6366f1 100%) !important;
+        color: #ffffff !important;
+        font-weight: 900 !important;
+        border: 1px solid #38bdf8 !important;
+        box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
+        text-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+    }
+
+    /* SOC Response Playbook Cards */
     .soc-playbook-card {
-        background: #ffffff;
-        border-left: 4px solid #0f172a;
-        border: 1px solid #e2e8f0;
+        background: rgba(15, 23, 42, 0.6);
+        border-left: 4px solid #38bdf8;
+        border: 1px solid rgba(56, 189, 248, 0.15);
         padding: 14px 18px;
         margin-bottom: 10px;
-        border-radius: 4px;
+        border-radius: 8px;
+        backdrop-filter: blur(8px);
+    }
+
+    /* Streamlit Native Buttons Override */
+    .stButton button {
+        background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%) !important;
+        color: #38bdf8 !important;
+        border: 1px solid rgba(56, 189, 248, 0.3) !important;
+        border-radius: 8px !important;
+        font-weight: 800 !important;
+        font-family: 'Orbitron', sans-serif !important;
+        font-size: 0.78rem !important;
+        letter-spacing: 0.5px !important;
+        transition: all 0.3s ease !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+    }
+
+    .stButton button:hover {
+        background: linear-gradient(135deg, #0284c7 0%, #3b82f6 100%) !important;
+        color: #ffffff !important;
+        border-color: #38bdf8 !important;
+        box-shadow: 0 0 15px rgba(56, 189, 248, 0.5) !important;
+        transform: translateY(-2px) !important;
+    }
+
+    /* Dataframe Containers Dark Theme Override */
+    div[data-testid="stDataFrame"] {
+        background: rgba(15, 23, 42, 0.6) !important;
+        border: 1px solid rgba(56, 189, 248, 0.2) !important;
+        border-radius: 10px !important;
+        backdrop-filter: blur(10px) !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -179,8 +318,8 @@ if 'soc_action_status' not in st.session_state:
 
 
 # Sidebar Workbench Controls
-st.sidebar.markdown("<h3 style='color:#0f172a; font-weight:900; letter-spacing:1px; text-transform:uppercase;'>🏛️ CYBER CONTROL PANEL</h3>", unsafe_allow_html=True)
-st.sidebar.markdown("<p style='color:#475569; font-size:0.75rem; text-transform:uppercase;'>Official Cyber Telemetry & Attack Forecasting System</p>", unsafe_allow_html=True)
+st.sidebar.markdown("<h3 style='font-family: Orbitron, sans-serif; background: linear-gradient(90deg, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight:900; letter-spacing:1.5px; text-transform:uppercase;'>⚡ CYBER CONTROL PANEL</h3>", unsafe_allow_html=True)
+st.sidebar.markdown("<p style='font-family: JetBrains Mono, monospace; color:#94a3b8; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.5px;'>Official Cyber Telemetry & Attack Forecasting System</p>", unsafe_allow_html=True)
 st.sidebar.markdown("---")
 
 data_source = st.sidebar.radio(
@@ -269,7 +408,7 @@ st.markdown("""
         <div class="gov-subtitle">GOVERNMENT OF INDIA • PREDICTIVE CYBER DEFENSE & ATTACK FORECASTING PORTAL (SIH26153)</div>
     </div>
     <div class="gov-seal">
-        OFFICIAL USE ONLY
+        <span class="pulse-dot"></span> LIVE TELEMETRY STREAM
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -309,7 +448,7 @@ with c2:
     st.markdown(f"""
     <div class="gov-card">
         <div class="gov-card-title">PROJECTED PEAK RISK (T<sub>{current_window_id}+{K_steps}</sub>)</div>
-        <div class="gov-card-value" style="color: {'#dc2626' if peak_forecast_risk >= risk_threshold else '#0f172a'};">{peak_forecast_risk*100:.1f}%</div>
+        <div class="gov-card-value" style="color: {'#f43f5e' if peak_forecast_risk >= risk_threshold else '#38bdf8'}; text-shadow: 0 0 15px {'rgba(244, 63, 94, 0.6)' if peak_forecast_risk >= risk_threshold else 'rgba(56, 189, 248, 0.4)'};">{peak_forecast_risk*100:.1f}%</div>
         <div class="gov-card-sub">K-STEP WORLD MODEL SIMULATION</div>
     </div>
     """, unsafe_allow_html=True)
@@ -318,7 +457,7 @@ with c3:
     st.markdown(f"""
     <div class="gov-card">
         <div class="gov-card-title">DETECTED MITRE STAGE</div>
-        <div class="gov-card-value" style="font-size: 1.4rem;">{mitre_info['name'].upper()}</div>
+        <div class="gov-card-value" style="font-size: 1.4rem; color: #38bdf8;">{mitre_info['name'].upper()}</div>
         <div class="gov-card-sub">{mitre_info['id']} ({mitre_info['confidence']*100:.0f}% CONFIDENCE)</div>
     </div>
     """, unsafe_allow_html=True)
@@ -327,7 +466,7 @@ with c4:
     st.markdown(f"""
     <div class="gov-card">
         <div class="gov-card-title">SOC RISK PRIORITY LEVEL</div>
-        <div class="gov-card-value" style="font-size: 1.4rem; color: {soc_priority['priority_color']};">{soc_priority['priority_level']}</div>
+        <div class="gov-card-value" style="font-size: 1.4rem; color: {soc_priority['priority_color']}; text-shadow: 0 0 15px {soc_priority['priority_color']};">{soc_priority['priority_level']}</div>
         <div class="gov-card-sub">{soc_priority['asset_tier']} ({selected_asset_ip})</div>
     </div>
     """, unsafe_allow_html=True)
@@ -365,8 +504,8 @@ with tab_timeline:
         y=hist_risks,
         mode='lines+markers',
         name='Observed Telemetry Risk',
-        line=dict(color='#0f172a', width=3),
-        marker=dict(size=8, symbol='circle', color='#0f172a')
+        line=dict(color='#38bdf8', width=3.5),
+        marker=dict(size=9, symbol='circle', color='#00f2fe')
     ))
 
     fig.add_trace(go.Scatter(
@@ -374,35 +513,35 @@ with tab_timeline:
         y=np.append([hist_risks[-1]], fut_risks),
         mode='lines+markers',
         name=f'{K_steps}-Step World Model Forecast',
-        line=dict(color='#dc2626', width=3, dash='dash'),
-        marker=dict(size=10, symbol='diamond', color='#dc2626')
+        line=dict(color='#f43f5e', width=3.5, dash='dash'),
+        marker=dict(size=11, symbol='diamond', color='#ff0055')
     ))
 
     fig.add_hline(
         y=risk_threshold,
         line_dash="dot",
-        line_color="#64748b",
+        line_color="#f59e0b",
         annotation_text=f"Critical Threshold ({risk_threshold*100:.0f}%)",
         annotation_position="top left",
-        annotation_font_color="#0f172a"
+        annotation_font_color="#f59e0b"
     )
 
     fig.update_layout(
-        template="plotly_white",
-        paper_bgcolor="#ffffff",
-        plot_bgcolor="#ffffff",
-        xaxis=dict(title="Time Window Index (T)", gridcolor="#f1f5f9"),
-        yaxis=dict(title="Infiltration Escalation Probability P(Attack)", range=[0, 1.05], gridcolor="#f1f5f9"),
+        template="plotly_dark",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(15, 23, 42, 0.5)",
+        xaxis=dict(title="Time Window Index (T)", gridcolor="rgba(255, 255, 255, 0.08)", title_font=dict(color="#cbd5e1"), tickfont=dict(color="#94a3b8")),
+        yaxis=dict(title="Infiltration Escalation Probability P(Attack)", range=[0, 1.05], gridcolor="rgba(255, 255, 255, 0.08)", title_font=dict(color="#cbd5e1"), tickfont=dict(color="#94a3b8")),
         margin=dict(l=40, r=40, t=30, b=40),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(color="#e2e8f0"))
     )
 
     st.plotly_chart(fig, use_container_width=True)
 
     if peak_forecast_risk >= risk_threshold:
-        st.markdown(f"<div style='background:#fef2f2; border:1px solid #fca5a5; color:#991b1b; padding:14px; font-weight:800;'>⚠️ OFFICIAL WARNING: World Model predicts attack escalation reaching {peak_forecast_risk*100:.1f}% risk within the next {np.argmax(risk_trajectory)+1} time windows. Target Asset: {asset_info['name']}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(244, 63, 94, 0.6); color: #fca5a5; padding: 16px; border-radius: 10px; font-weight: 800; box-shadow: 0 0 20px rgba(239, 68, 68, 0.25); backdrop-filter: blur(10px); display: flex; align-items: center; gap: 12px;'>🚨 <span style=\"font-family: Orbitron, sans-serif; letter-spacing: 0.5px;\">CRITICAL DEFENSE WARNING:</span> World Model predicts attack escalation reaching <b style=\"color:#ffffff;\">{peak_forecast_risk*100:.1f}%</b> risk within the next {np.argmax(risk_trajectory)+1} time windows. Target Asset: <b style=\"color:#38bdf8;\">{asset_info['name']}</b></div>", unsafe_allow_html=True)
     else:
-        st.markdown("<div style='background:#f0fdf4; border:1px solid #86efac; color:#166534; padding:14px; font-weight:700;'>✅ TELEMETRY STABLE: Risk trajectory remains within standard operational boundaries.</div>", unsafe_allow_html=True)
+        st.markdown("<div style='background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.5); color: #6ee7b7; padding: 16px; border-radius: 10px; font-weight: 700; box-shadow: 0 0 20px rgba(16, 185, 129, 0.2); backdrop-filter: blur(10px); display: flex; align-items: center; gap: 12px;'>🛡️ <span style=\"font-family: Orbitron, sans-serif; letter-spacing: 0.5px;\">TELEMETRY STABLE:</span> Risk trajectory remains within standard operational boundaries.</div>", unsafe_allow_html=True)
 
 
 # TAB 2: MITRE ATT&CK TRACKER
@@ -419,30 +558,30 @@ with tab_mitre:
         with cols[idx]:
             if idx < current_stage_idx:
                 status_str = "COMPLETED"
-                bg_color = "#f8fafc"
-                border_color = "#cbd5e1"
-                text_color = "#64748b"
+                bg_style = "background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.3);"
+                text_color = "#38bdf8"
+                sub_color = "#94a3b8"
             elif idx == current_stage_idx:
                 status_str = "ACTIVE NOW"
-                bg_color = "#0f172a"
-                border_color = "#0f172a"
+                bg_style = "background: linear-gradient(135deg, rgba(2, 132, 199, 0.9), rgba(99, 102, 241, 0.9)); border: 1px solid #38bdf8; box-shadow: 0 0 20px rgba(56, 189, 248, 0.5);"
                 text_color = "#ffffff"
+                sub_color = "#e2e8f0"
             elif idx <= future_stage_idx:
                 status_str = "FORECASTED"
-                bg_color = "#fef2f2"
-                border_color = "#fca5a5"
-                text_color = "#991b1b"
+                bg_style = "background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(244, 63, 94, 0.7); box-shadow: 0 0 15px rgba(244, 63, 94, 0.3);"
+                text_color = "#fca5a5"
+                sub_color = "#f87171"
             else:
                 status_str = "CLEAR"
-                bg_color = "#ffffff"
-                border_color = "#e2e8f0"
-                text_color = "#94a3b8"
+                bg_style = "background: rgba(15, 23, 42, 0.3); border: 1px solid rgba(255, 255, 255, 0.08);"
+                text_color = "#64748b"
+                sub_color = "#475569"
 
             st.markdown(f"""
-            <div style="background: {bg_color}; border: 1.5px solid {border_color}; padding: 14px 8px; text-align: center; border-radius: 4px;">
-                <div style="font-size: 0.7rem; font-weight: 900; color: {text_color}; text-transform: uppercase;">{status_str}</div>
-                <div style="font-size: 0.9rem; font-weight: 900; color: {'#ffffff' if bg_color=='#0f172a' else '#0f172a'}; margin-top:4px;">{stage['name']}</div>
-                <div style="font-size: 0.7rem; color: {'#94a3b8' if bg_color=='#0f172a' else '#64748b'}; margin-top: 4px;">{stage['id']}</div>
+            <div style="{bg_style} padding: 14px 8px; text-align: center; border-radius: 8px; backdrop-filter: blur(8px);">
+                <div style="font-size: 0.7rem; font-family: Orbitron, sans-serif; font-weight: 900; color: {text_color}; text-transform: uppercase;">{status_str}</div>
+                <div style="font-size: 0.9rem; font-weight: 900; color: {text_color}; margin-top:4px;">{stage['name']}</div>
+                <div style="font-size: 0.7rem; font-family: JetBrains Mono, monospace; color: {sub_color}; margin-top: 4px;">{stage['id']}</div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -472,24 +611,25 @@ with tab_xai:
             y='feature',
             orientation='h',
             title='Top Driving Telemetry Features (SHAP Impact)',
-            color_discrete_sequence=['#0f172a']
+            color_discrete_sequence=['#00f2fe']
         )
         fig_shap.update_layout(
-            template="plotly_white",
-            paper_bgcolor="#ffffff",
-            plot_bgcolor="#ffffff",
-            yaxis=dict(autorange="reversed", gridcolor="#f1f5f9"),
-            xaxis=dict(gridcolor="#f1f5f9"),
-            margin=dict(l=20, r=20, t=40, b=20)
+            template="plotly_dark",
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(15, 23, 42, 0.5)",
+            yaxis=dict(autorange="reversed", gridcolor="rgba(255, 255, 255, 0.08)", tickfont=dict(color="#cbd5e1")),
+            xaxis=dict(gridcolor="rgba(255, 255, 255, 0.08)", tickfont=dict(color="#cbd5e1")),
+            margin=dict(l=20, r=20, t=40, b=20),
+            title=dict(font=dict(color='#38bdf8', family='Orbitron'))
         )
         st.plotly_chart(fig_shap, use_container_width=True)
 
     with col_x2:
         st.markdown("### 📝 OFFICIAL CYBER RATIONALE")
         st.markdown(f"""
-        <div style="background:#ffffff; border:1px solid #cbd5e1; padding:16px; border-top: 4px solid #0f172a;">
-            <div style="font-weight:900; color:#0f172a; text-transform:uppercase; margin-bottom:8px;">Primary Driver: {xai_res['primary_driver']}</div>
-            <div style="color:#334155; font-size:0.9rem;">{xai_res['narrative']}</div>
+        <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(56, 189, 248, 0.2); border-top: 4px solid #38bdf8; padding: 18px; border-radius: 10px; backdrop-filter: blur(10px); box-shadow: 0 8px 24px rgba(0,0,0,0.4);">
+            <div style="font-weight:900; color:#38bdf8; font-family: Orbitron, sans-serif; text-transform:uppercase; margin-bottom:8px; letter-spacing: 1px;">Primary Driver: {xai_res['primary_driver']}</div>
+            <div style="color:#e2e8f0; font-size:0.9rem; line-height: 1.5;">{xai_res['narrative']}</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -532,14 +672,15 @@ with tab_kstep:
         color='Telemetry Feature',
         markers=True,
         title='Feature Drift Trajectory over K Steps',
-        color_discrete_sequence=['#0f172a', '#2563eb', '#dc2626']
+        color_discrete_sequence=['#38bdf8', '#a855f7', '#f43f5e']
     )
     fig_drift.update_layout(
-        template="plotly_white",
-        paper_bgcolor="#ffffff",
-        plot_bgcolor="#ffffff",
-        xaxis=dict(gridcolor="#f1f5f9"),
-        yaxis=dict(gridcolor="#f1f5f9")
+        template="plotly_dark",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(15, 23, 42, 0.5)",
+        xaxis=dict(gridcolor="rgba(255, 255, 255, 0.08)", tickfont=dict(color="#cbd5e1")),
+        yaxis=dict(gridcolor="rgba(255, 255, 255, 0.08)", tickfont=dict(color="#cbd5e1")),
+        title=dict(font=dict(color='#38bdf8', family='Orbitron'))
     )
     st.plotly_chart(fig_drift, use_container_width=True)
 
@@ -553,12 +694,12 @@ with tab_soc:
 
     with col_s1:
         st.markdown(f"""
-        <div style="background:#ffffff; border:1px solid #cbd5e1; border-top:4px solid {soc_priority['priority_color']}; padding:18px; border-radius:4px;">
-            <div style="font-size:0.8rem; font-weight:800; color:#64748b; text-transform:uppercase;">COMPOSITE RISK PRIORITIZATION</div>
-            <div style="font-size:2.2rem; font-weight:900; color:{soc_priority['priority_color']}; margin:4px 0;">{soc_priority['priority_level']}</div>
-            <div style="font-size:0.9rem; color:#0f172a; font-weight:700;">Target Asset: {asset_info['name']} ({selected_asset_ip})</div>
-            <div style="font-size:0.8rem; color:#475569; margin-top:4px;">Asset Criticality: <b>{asset_info['tier']}</b> (Weight: {asset_info['weight']}x)</div>
-            <div style="font-size:0.8rem; color:#475569; margin-top:2px;">Incident Response SLA: <b>{soc_priority['sla_response']}</b></div>
+        <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(56, 189, 248, 0.2); border-top: 4px solid {soc_priority['priority_color']}; padding: 20px; border-radius: 12px; backdrop-filter: blur(12px); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);">
+            <div style="font-size:0.8rem; font-weight:800; color:#38bdf8; font-family: Orbitron, sans-serif; text-transform:uppercase; letter-spacing:1px;">COMPOSITE RISK PRIORITIZATION</div>
+            <div style="font-size:2.4rem; font-weight:900; color:{soc_priority['priority_color']}; margin:6px 0; font-family: Orbitron, sans-serif; text-shadow: 0 0 20px {soc_priority['priority_color']};">{soc_priority['priority_level']}</div>
+            <div style="font-size:0.95rem; color:#ffffff; font-weight:700;">Target Asset: {asset_info['name']} ({selected_asset_ip})</div>
+            <div style="font-size:0.82rem; color:#cbd5e1; margin-top:6px;">Asset Criticality: <b style="color:#38bdf8;">{asset_info['tier']}</b> (Weight: {asset_info['weight']}x)</div>
+            <div style="font-size:0.82rem; color:#cbd5e1; margin-top:4px;">Incident Response SLA: <b style="color:#f43f5e;">{soc_priority['sla_response']}</b></div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -584,9 +725,9 @@ with tab_soc:
     playbook_list = soc_priority['playbook_actions']
     for pb in playbook_list:
         st.markdown(f"""
-        <div style="background:#ffffff; border:1px solid #e2e8f0; border-left:4px solid #0f172a; padding:12px 16px; margin-bottom:8px; border-radius:2px;">
-            <span style="font-weight:900; color:#0f172a;">STEP {pb['step']} [{pb['type'].upper()}]</span> — <span style="color:#334155;">{pb['action']}</span>
-            <span style="float:right; background:#f1f5f9; color:#0f172a; font-weight:700; font-size:0.75rem; padding:2px 8px; border-radius:2px; border:1px solid #cbd5e1;">STATUS: {pb['status']}</span>
+        <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(56, 189, 248, 0.15); border-left: 4px solid #38bdf8; padding: 14px 18px; margin-bottom: 10px; border-radius: 8px; backdrop-filter: blur(8px);">
+            <span style="font-weight: 900; color: #38bdf8; font-family: Orbitron, sans-serif;">STEP {pb['step']} [{pb['type'].upper()}]</span> — <span style="color: #e2e8f0;">{pb['action']}</span>
+            <span style="float: right; background: rgba(56, 189, 248, 0.15); color: #38bdf8; font-weight: 700; font-size: 0.75rem; padding: 3px 10px; border-radius: 4px; border: 1px solid rgba(56, 189, 248, 0.3); font-family: JetBrains Mono, monospace;">STATUS: {pb['status']}</span>
         </div>
         """, unsafe_allow_html=True)
 
@@ -629,16 +770,17 @@ with tab_bench:
     with b_c2:
         st.markdown("### Lead Time & F1-Gain Metrics")
         fig_bench = go.Figure(data=[
-            go.Bar(name='World Model K-Step', x=['F1-Score', 'Recall', 'Lead Time (Windows)'], y=[bench_res['world_model']['f1'], bench_res['world_model']['recall'], 3.5], marker_color='#0f172a'),
-            go.Bar(name='Static Baseline', x=['F1-Score', 'Recall', 'Lead Time (Windows)'], y=[bench_res['baseline']['f1'], bench_res['baseline']['recall'], 0.0], marker_color='#94a3b8')
+            go.Bar(name='World Model K-Step', x=['F1-Score', 'Recall', 'Lead Time (Windows)'], y=[bench_res['world_model']['f1'], bench_res['world_model']['recall'], 3.5], marker_color='#38bdf8'),
+            go.Bar(name='Static Baseline', x=['F1-Score', 'Recall', 'Lead Time (Windows)'], y=[bench_res['baseline']['f1'], bench_res['baseline']['recall'], 0.0], marker_color='#475569')
         ])
         fig_bench.update_layout(
             barmode='group',
-            template="plotly_white",
-            paper_bgcolor="#ffffff",
-            plot_bgcolor="#ffffff",
-            xaxis=dict(gridcolor="#f1f5f9"),
-            yaxis=dict(gridcolor="#f1f5f9")
+            template="plotly_dark",
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(15, 23, 42, 0.5)",
+            xaxis=dict(gridcolor="rgba(255, 255, 255, 0.08)", tickfont=dict(color="#cbd5e1")),
+            yaxis=dict(gridcolor="rgba(255, 255, 255, 0.08)", tickfont=dict(color="#cbd5e1")),
+            legend=dict(font=dict(color='#e2e8f0'))
         )
         st.plotly_chart(fig_bench, use_container_width=True)
 

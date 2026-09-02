@@ -247,23 +247,23 @@ class SOCRiskPrioritizer:
         # Priority Level Classification
         if soc_priority_score >= 0.70:
             priority_level = "P1 - CRITICAL"
-            color = "#dc2626"
-            badge_bg = "#fef2f2"
+            color = "#f43f5e"
+            badge_bg = "rgba(244, 63, 94, 0.2)"
             sla_response = "Immediate Action (SLA < 15 mins)"
         elif soc_priority_score >= 0.45:
             priority_level = "P2 - HIGH"
-            color = "#d97706"
-            badge_bg = "#fffbeb"
+            color = "#f59e0b"
+            badge_bg = "rgba(245, 158, 11, 0.2)"
             sla_response = "Priority Investigation (SLA < 30 mins)"
         elif soc_priority_score >= 0.25:
             priority_level = "P3 - MEDIUM"
-            color = "#2563eb"
-            badge_bg = "#eff6ff"
+            color = "#38bdf8"
+            badge_bg = "rgba(56, 189, 248, 0.2)"
             sla_response = "Standard Queue (SLA < 2 hours)"
         else:
             priority_level = "P4 - LOW"
-            color = "#16a34a"
-            badge_bg = "#f0fdf4"
+            color = "#10b981"
+            badge_bg = "rgba(16, 185, 129, 0.2)"
             sla_response = "Routine Monitoring (SLA < 24 hours)"
 
         response_playbook = cls.get_recommended_playbook(mitre_stage['name'], asset_info, priority_level)
