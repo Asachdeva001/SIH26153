@@ -305,21 +305,37 @@ if 'df_raw' not in st.session_state:
 
 @st.cache_resource
 def load_world_model():
-    # Stopgap: cache the live fit until the real chronological split is implemented
-    gen = SyntheticAttackGenerator(seed=42)
-    _, df_win = gen.generate_scenario("APT Multi-Stage Campaign", num_windows=20)
-    forecaster = WorldModelForecaster(history_len=4)
-    forecaster.fit(df_win)
-    return forecaster
+    if os.path.exists("models/world_model_v1.pth"):
+        forecaster = WorldModelForecaster.load_model("models/world_model_v1.pth")
+        
+        # Load scaler
+        if os.path.exists("models/scaler.pkl"):
+            import joblib
+            scaler_data = joblib.load("models/scaler.pkl")
+            forecaster.mean_ = scaler_data['mean_']
+            forecaster.scale_ = scaler_data['scale_']
+        return forecaster
+    else:
+        # Stopgap: cache the live fit until the real chronological split is implemented
+        gen = SyntheticAttackGenerator(seed=42)
+        _, df_win = gen.generate_scenario("APT Multi-Stage Campaign", num_windows=20)
+        forecaster = WorldModelForecaster(history_len=4)
+        forecaster.fit(df_win)
+        return forecaster
 
 @st.cache_resource
 def load_baseline_model():
-    # Stopgap: cache the live fit until the real chronological split is implemented
-    gen = SyntheticAttackGenerator(seed=42)
-    _, df_win = gen.generate_scenario("APT Multi-Stage Campaign", num_windows=20)
-    base = BaselineClassifier()
-    base.fit(df_win)
-    return base
+    if os.path.exists("models/baseline_lr_v1.pkl"):
+        import joblib
+        base = joblib.load("models/baseline_lr_v1.pkl")
+        return base
+    else:
+        # Stopgap: cache the live fit until the real chronological split is implemented
+        gen = SyntheticAttackGenerator(seed=42)
+        _, df_win = gen.generate_scenario("APT Multi-Stage Campaign", num_windows=20)
+        base = BaselineClassifier()
+        base.fit(df_win)
+        return base
 
 if 'forecaster' not in st.session_state:
     st.session_state.forecaster = load_world_model()
@@ -338,10 +354,10 @@ st.sidebar.markdown("---")
 
 data_source = st.sidebar.radio(
     "TELEMETRY INPUT DATASET",
-    ["Pre-loaded Cyber Scenarios", "Upload PCAP / CSV File"]
+    ["Synthetic Demo Scenario", "Upload PCAP / CSV File"]
 )
 
-if data_source == "Pre-loaded Cyber Scenarios":
+if data_source == "Synthetic Demo Scenario":
     selected_scenario = st.sidebar.selectbox(
         "Select Multi-Stage Scenario",
         SyntheticAttackGenerator.SCENARIOS,

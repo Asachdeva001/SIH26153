@@ -41,11 +41,13 @@ Traditional Network Intrusion Detection Systems (NIDS) perform static flow class
 ### 4. 🎯 MITRE ATT&CK Phase Progress Tracker
 * Maps telemetry state vectors to 5 core kill-chain stages: Reconnaissance, Initial Access, Lateral Movement, Command & Control (C2), Exfiltration.
 
-### 5. 🔬 Explainable AI (XAI) Engine (SHAP)
-* **SHAP Feature Attribution**: Pinpoints top 10 driving telemetry features and generates automated natural language cyber rationale narratives for SOC analysts.
+### 5. 🔬 Explainable AI (XAI) Engine
+* **Captum GradientShap Feature Attribution**: Uses Meta's PyTorch-native Captum library for genuine gradient-based feature attribution. Avoids limitations of typical SHAP explainers on multivariate time-series.
+* Pinpoints top 10 driving telemetry features and generates automated natural language cyber rationale narratives for SOC analysts.
 
 ### 6. ⚡ Quantitative Baseline Benchmarking Engine
-* Benchmarks World Model $K$-step forecasting against a static Logistic Regression baseline classifier across **$F1$-Score, Precision, Recall, FPR, and Detection Lead Time**.
+* **Strict Chronological Campaign Split**: Data is grouped and split chronologically by attack campaign to prevent random-split flow data leakage, ensuring authentic generalization.
+* Benchmarks World Model $K$-step forecasting against a static Logistic Regression baseline classifier (trained on the exact same split) across **$F1$-Score, Precision, Recall, FPR, and dynamically computed Detection Lead Time**.
 
 ### 7. 🏛️ Official Government Portal Web UI
 * Clean light-mode interface (`#f8fafc` background, `#0f172a` header banner, equal-height metric cards).
@@ -64,14 +66,19 @@ SIH26153/
 ├── Dockerfile                  # Container Build Configuration
 ├── Procfile                    # Web Process Start Command
 ├── requirements.txt            # Python Dependencies
+├── configs/
+│   └── default.yaml            # Hyperparameters and reproducibility config
+├── scripts/
+│   └── train.py                # Standalone chronological pipeline training script
+├── models/                     # Saved authentic .pth and .pkl model checkpoints
 ├── src/
 │   ├── __init__.py             # Package Initializer
 │   ├── parser.py               # PCAP & CSV Telemetry Feature Extractor
 │   ├── synthetic_generator.py  # Multi-Stage Cyber Attack Dataset Generator
 │   ├── world_model.py          # World Model, Asset Criticality & SOC Prioritizer
-│   └── explainer.py            # SHAP Feature Attribution & XAI Engine
+│   └── explainer.py            # Captum GradientShap XAI Engine
 └── tests/
-    └── test_pipeline.py        # Automated Pytest Test Suite
+    └── test_pipeline.py        # Automated Pytest Test Suite with Correctness Checks
 ```
 
 ---

@@ -128,7 +128,7 @@ class WorldModelForecaster:
         if device is None:
             device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
             
-        state = torch.load(filepath, map_location=device, weights_only=True)
+        state = torch.load(filepath, map_location=device, weights_only=False)
         
         forecaster = cls(hidden_dim=state['hidden_dim'], history_len=state['history_len'])
         forecaster.device = device
@@ -379,6 +379,14 @@ class BenchmarkEvaluator:
     """Evaluates and compares World Model K-step forecaster vs Baseline static classifier."""
 
     @staticmethod
+    def compute_lead_time(wm_probs: np.ndarray, baseline_probs: np.ndarray, threshold: float = 0.50):
+        wm_alert_idx = next((i for i, p in enumerate(wm_probs) if p >= threshold), None)
+        base_alert_idx = next((i for i, p in enumerate(baseline_probs) if p >= threshold), None)
+        if wm_alert_idx is None or base_alert_idx is None:
+            return None
+        return base_alert_idx - wm_alert_idx
+
+    @staticmethod
     def evaluate_comparison(
         world_model_preds: np.ndarray,
         baseline_preds: np.ndarray,
@@ -399,7 +407,8 @@ class BenchmarkEvaluator:
         wm_metrics = calc_metrics(wm_binary, ground_truth)
         base_metrics = calc_metrics(base_binary, ground_truth)
 
-        lead_time_wm = 3.5
+        lead_time = BenchmarkEvaluator.compute_lead_time(world_model_preds, baseline_preds, threshold)
+        lead_time_wm = lead_time if lead_time is not None else 0.0
         lead_time_base = 0.0
 
         return {
