@@ -1,22 +1,61 @@
+import torch
+import torch.nn as nn
+from captum.attr import GradientShap
 import numpy as np
 import pandas as pd
-import shap
 from typing import Dict, List, Tuple
 from src.parser import FEATURE_COLUMNS
 
+class RiskScoreWrapper(nn.Module):
+    def __init__(self, model):
+        super().__init__()
+        self.model = model
+    def forward(self, x):
+        _, risk_score = self.model(x)
+        return risk_score
+
 class AttackExplainer:
     """
-    Explainable AI (XAI) Engine using SHAP (SHapley Additive exPlanations).
+    Explainable AI (XAI) Engine using Captum GradientShap on actual PyTorch models.
     Pinpoints top telemetry driving features contributing to risk escalations
     and generates SOC incident response explanations.
     """
-    def __init__(self):
+    def __init__(self, model, history_len, mean, scale, device, background_df):
         self.feature_cols = FEATURE_COLUMNS
+        self.history_len = history_len
+        self.mean_ = mean
+        self.scale_ = scale
+        self.device = device
+
+        self.wrapper_model = RiskScoreWrapper(model).to(device)
+        self.wrapper_model.eval()
+        self.gs = GradientShap(self.wrapper_model)
+        
+        # Prepare background dataset (up to 200 sequences)
+        self.background_tensor = self._prepare_sequences(background_df, max_samples=200)
+
+    def _prepare_sequences(self, df, max_samples=None):
+        X_raw = df[self.feature_cols].values.astype(np.float32)
+        X_scaled = (X_raw - self.mean_) / self.scale_
+        
+        sequences = []
+        for i in range(len(X_scaled) - self.history_len + 1):
+            sequences.append(X_scaled[i : i + self.history_len])
+            
+        if len(sequences) == 0:
+            pad = np.zeros((self.history_len, len(self.feature_cols)), dtype=np.float32)
+            sequences.append(pad)
+            
+        seq_array = np.array(sequences)
+        if max_samples and len(seq_array) > max_samples:
+            idx = np.random.choice(len(seq_array), max_samples, replace=False)
+            seq_array = seq_array[idx]
+            
+        return torch.tensor(seq_array, dtype=torch.float32).to(self.device)
 
     def explain_window(
         self,
-        window_features: pd.Series,
-        baseline_means: pd.Series = None,
+        historical_windows: pd.DataFrame,
         asset_info: Dict = None,
         soc_priority: Dict = None
     ) -> Dict:
@@ -24,79 +63,47 @@ class AttackExplainer:
         Calculates feature attributions and SHAP-equivalent importances
         for a target state vector window, integrating SOC risk priority context.
         """
-        if baseline_means is None:
-            baseline_means = pd.Series({
-                'flow_count': 20.0,
-                'total_packets': 30.0,
-                'total_bytes': 5000.0,
-                'bytes_per_packet_mean': 200.0,
-                'bytes_per_packet_max': 500.0,
-                'flow_duration_mean': 0.1,
-                'syn_flag_ratio': 0.05,
-                'ack_flag_ratio': 0.85,
-                'fin_flag_ratio': 0.02,
-                'rst_flag_ratio': 0.01,
-                'psh_flag_ratio': 0.10,
-                'urg_flag_ratio': 0.0,
-                'iat_mean': 0.20,
-                'iat_variance': 0.05,
-                'iat_max': 0.50,
-                'ttl_mean': 64.0,
-                'ttl_std': 2.0,
-                'tcp_window_mean': 64240.0,
-                'ip_frag_ratio': 0.0,
-                'unique_src_ips': 2.0,
-                'unique_dst_ips': 2.0,
-                'unique_dst_ports': 3.0,
-                'port_scan_score': 1.0,
-                'high_port_ratio': 0.1,
-                'retrans_ratio': 0.01
-            })
-
-        attributions = []
-
-        feature_weights = {
-            'total_bytes': 0.25,
-            'bytes_per_packet_mean': 0.20,
-            'syn_flag_ratio': 0.35,
-            'port_scan_score': 0.30,
-            'unique_dst_ports': 0.25,
-            'iat_variance': -0.20,
-            'rst_flag_ratio': 0.15,
-            'high_port_ratio': 0.15,
-            'retrans_ratio': 0.10,
-            'ip_frag_ratio': 0.10,
-            'ttl_std': 0.12,
-            'total_packets': 0.10
-        }
-
-        for col in self.feature_cols:
-            val = float(window_features.get(col, 0.0))
-            base_val = float(baseline_means.get(col, 1.0))
-            weight = feature_weights.get(col, 0.05)
-
-            std_ref = max(abs(base_val), 1.0)
-            if col == 'iat_variance':
-                delta = (base_val - val) / std_ref
-            else:
-                delta = (val - base_val) / std_ref
-
-            shap_val = float(np.tanh(delta * weight))
-
-            attributions.append({
+        X_raw = historical_windows[self.feature_cols].values.astype(np.float32)
+        X_scaled = (X_raw - self.mean_) / self.scale_
+        
+        if len(X_scaled) < self.history_len:
+            pad_len = self.history_len - len(X_scaled)
+            padding = np.tile(X_scaled[0] if len(X_scaled) > 0 else np.zeros(len(self.feature_cols)), (pad_len, 1))
+            seq = np.vstack([padding, X_scaled])
+        else:
+            seq = X_scaled[-self.history_len:]
+            
+        input_tensor = torch.tensor(seq, dtype=torch.float32, requires_grad=True).unsqueeze(0).to(self.device)
+        
+        attributions = self.gs.attribute(input_tensor, baselines=self.background_tensor, target=0, n_samples=50)
+        
+        # attributions shape: (1, history_len, num_features)
+        attr_matrix = attributions[0].cpu().detach().numpy() # (history_len, num_features)
+        
+        abs_importance = np.abs(attr_matrix).sum(axis=0)
+        net_contribution = attr_matrix.sum(axis=0)
+        
+        attr_list = []
+        current_row = historical_windows.iloc[-1]
+        for idx, col in enumerate(self.feature_cols):
+            val = float(current_row.get(col, 0.0))
+            base_val = float(self.mean_[idx]) if self.mean_ is not None else 1.0
+            
+            attr_list.append({
                 'feature': col,
                 'observed_value': val,
                 'baseline_value': base_val,
-                'shap_value': shap_val,
-                'abs_shap': abs(shap_val)
+                'shap_value': float(net_contribution[idx]),
+                'abs_shap': float(abs_importance[idx]),
+                'per_timestep': attr_matrix[:, idx].tolist()
             })
-
-        df_attr = pd.DataFrame(attributions).sort_values(by='abs_shap', ascending=False)
+            
+        df_attr = pd.DataFrame(attr_list).sort_values(by='abs_shap', ascending=False)
         top_10 = df_attr.head(10).to_dict(orient='records')
-
+        
         top_driver = top_10[0]
         narrative = self._generate_narrative(top_driver, asset_info, soc_priority)
-
+        
         return {
             'attributions': top_10,
             'full_attributions_df': df_attr,
@@ -131,3 +138,4 @@ class AttackExplainer:
             core = f"Telemetry metric '{feat}' drifted to {obs:.2f} (baseline: {base:.2f}), elevating multi-step forecast risk."
 
         return f"{core}{asset_str}{prio_str}"
+

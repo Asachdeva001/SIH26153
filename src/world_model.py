@@ -108,6 +108,40 @@ class WorldModelForecaster:
         self.model.eval()
         self.is_fitted = True
 
+    def save_model(self, filepath: str):
+        """Serializes the PyTorch model and scaling parameters."""
+        if not self.is_fitted:
+            raise RuntimeError("Model is not fitted, nothing to save.")
+            
+        state = {
+            'model_state_dict': self.model.state_dict(),
+            'mean_': self.mean_,
+            'scale_': self.scale_,
+            'hidden_dim': self.hidden_dim,
+            'history_len': self.history_len
+        }
+        torch.save(state, filepath)
+
+    @classmethod
+    def load_model(cls, filepath: str, device=None) -> 'WorldModelForecaster':
+        """Loads a serialized model and scaling parameters."""
+        if device is None:
+            device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+            
+        state = torch.load(filepath, map_location=device, weights_only=True)
+        
+        forecaster = cls(hidden_dim=state['hidden_dim'], history_len=state['history_len'])
+        forecaster.device = device
+        forecaster.model = PyTorchTransitionLSTM(forecaster.input_dim, state['hidden_dim']).to(device)
+        forecaster.model.load_state_dict(state['model_state_dict'])
+        forecaster.model.eval()
+        
+        forecaster.mean_ = state['mean_']
+        forecaster.scale_ = state['scale_']
+        forecaster.is_fitted = True
+        
+        return forecaster
+
     def predict_k_steps(
         self,
         historical_windows: pd.DataFrame,

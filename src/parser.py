@@ -33,6 +33,9 @@ FEATURE_COLUMNS = [
     'retrans_ratio'
 ]
 
+class PCAPParseError(Exception):
+    pass
+
 class TrafficParser:
     """
     Dual-level telemetry parser for raw PCAP and CSV flow datasets.
@@ -180,9 +183,11 @@ class TrafficParser:
                     'retrans_count': 0
                 })
         except Exception as e:
-            # High-level fallback synthetic reader if file is non-standard
-            print(f"[TrafficParser] Scapy parsing notice ({e}), constructing frame from binary stats.")
-            packets_data = self._parse_pcap_fallback(pcap_path)
+            from scapy.error import Scapy_Exception
+            import struct
+            if isinstance(e, (Scapy_Exception, struct.error, EOFError)):
+                raise PCAPParseError(f"Could not parse this PCAP file: {e}") from e
+            raise PCAPParseError(f"PCAP parsing failed: {e}") from e
 
         df = pd.DataFrame(packets_data)
         return self.parse_csv(df)
@@ -365,36 +370,4 @@ class TrafficParser:
         if not found:
             df[target] = default_val
 
-    def _parse_pcap_fallback(self, pcap_path: str) -> List[Dict]:
-        """Fallback synthetic packet extractor if PCAP reading encounters non-standard formats."""
-        records = []
-        file_size = os.path.getsize(pcap_path) if os.path.exists(pcap_path) else 1000
-        n_est_pkts = max(20, min(500, int(file_size / 64)))
 
-        for i in range(n_est_pkts):
-            records.append({
-                'relative_sec': i * 0.2,
-                'src_ip': '192.168.1.105',
-                'dst_ip': '10.0.0.50',
-                'src_port': 49152 + (i % 100),
-                'dst_port': 445 if i > n_est_pkts // 2 else 80,
-                'protocol': 6,
-                'syn_flag': 1 if i % 4 == 0 else 0,
-                'ack_flag': 1 if i % 2 == 0 else 0,
-                'fin_flag': 0,
-                'rst_flag': 0,
-                'psh_flag': 1 if i % 5 == 0 else 0,
-                'urg_flag': 0,
-                'flow_duration': 0.08,
-                'tot_bytes': 64 + (i * 12) % 1200,
-                'tot_pkts': 2,
-                'flow_iat_mean': 0.02,
-                'flow_iat_std': 0.005,
-                'flow_iat_max': 0.05,
-                'ttl': 64,
-                'tcp_win': 64240,
-                'ip_frag': 0,
-                'payload_bytes': 32 + (i * 10) % 500,
-                'retrans_count': 0
-            })
-        return records

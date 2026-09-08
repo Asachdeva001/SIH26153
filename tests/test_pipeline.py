@@ -89,9 +89,20 @@ def test_explainer():
     gen = SyntheticAttackGenerator(seed=42)
     _, df_win = gen.generate_scenario("APT Multi-Stage Campaign", num_windows=10)
 
-    explainer = AttackExplainer()
-    xai_res = explainer.explain_window(df_win.iloc[5])
+    forecaster = WorldModelForecaster(history_len=4)
+    forecaster.fit(df_win, epochs=2)
+
+    explainer = AttackExplainer(
+        model=forecaster.model,
+        history_len=forecaster.history_len,
+        mean=forecaster.mean_,
+        scale=forecaster.scale_,
+        device=forecaster.device,
+        background_df=df_win
+    )
+    xai_res = explainer.explain_window(df_win.iloc[:6])
 
     assert 'attributions' in xai_res, "XAI results should contain attributions."
     assert len(xai_res['attributions']) == 10, "Top 10 feature attributions should be returned."
     assert 'narrative' in xai_res, "XAI results should contain natural language narrative."
+

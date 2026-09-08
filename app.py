@@ -303,15 +303,29 @@ if 'df_raw' not in st.session_state:
     st.session_state.df_win = df_win
     st.session_state.current_scenario = "APT Multi-Stage Campaign"
 
-if 'forecaster' not in st.session_state:
+@st.cache_resource
+def load_world_model():
+    # Stopgap: cache the live fit until the real chronological split is implemented
+    gen = SyntheticAttackGenerator(seed=42)
+    _, df_win = gen.generate_scenario("APT Multi-Stage Campaign", num_windows=20)
     forecaster = WorldModelForecaster(history_len=4)
-    forecaster.fit(st.session_state.df_win)
-    st.session_state.forecaster = forecaster
+    forecaster.fit(df_win)
+    return forecaster
+
+@st.cache_resource
+def load_baseline_model():
+    # Stopgap: cache the live fit until the real chronological split is implemented
+    gen = SyntheticAttackGenerator(seed=42)
+    _, df_win = gen.generate_scenario("APT Multi-Stage Campaign", num_windows=20)
+    base = BaselineClassifier()
+    base.fit(df_win)
+    return base
+
+if 'forecaster' not in st.session_state:
+    st.session_state.forecaster = load_world_model()
 
 if 'baseline' not in st.session_state:
-    base = BaselineClassifier()
-    base.fit(st.session_state.df_win)
-    st.session_state.baseline = base
+    st.session_state.baseline = load_baseline_model()
 
 if 'soc_action_status' not in st.session_state:
     st.session_state.soc_action_status = None
@@ -341,13 +355,10 @@ if data_source == "Pre-loaded Cyber Scenarios":
         st.session_state.df_win = df_win
         st.session_state.current_scenario = selected_scenario
 
-        forecaster = WorldModelForecaster(history_len=4)
-        forecaster.fit(df_win)
-        st.session_state.forecaster = forecaster
-
-        base = BaselineClassifier()
-        base.fit(df_win)
-        st.session_state.baseline = base
+        st.session_state.forecaster = load_world_model()
+        st.session_state.baseline = load_baseline_model()
+        if 'explainer' in st.session_state:
+            del st.session_state.explainer
         st.rerun()
 
 else:
@@ -368,13 +379,10 @@ else:
         st.session_state.df_raw = df_parsed
         st.session_state.df_win = df_win
 
-        forecaster = WorldModelForecaster(history_len=4)
-        forecaster.fit(df_win)
-        st.session_state.forecaster = forecaster
-
-        base = BaselineClassifier()
-        base.fit(df_win)
-        st.session_state.baseline = base
+        st.session_state.forecaster = load_world_model()
+        st.session_state.baseline = load_baseline_model()
+        if 'explainer' in st.session_state:
+            del st.session_state.explainer
         st.sidebar.success(f"Ingested {len(df_win)} telemetry windows.")
 
 st.sidebar.markdown("---")
@@ -597,8 +605,18 @@ with tab_xai:
     st.subheader("Explainable AI (XAI) Telemetry Feature Attribution")
     st.markdown("SHAP feature attribution analysis identifying driving network telemetry metrics responsible for risk escalation.")
 
-    explainer = AttackExplainer()
-    xai_res = explainer.explain_window(current_row, asset_info=asset_info, soc_priority=soc_priority)
+    if 'explainer' not in st.session_state:
+        st.session_state.explainer = AttackExplainer(
+            model=st.session_state.forecaster.model,
+            history_len=st.session_state.forecaster.history_len,
+            mean=st.session_state.forecaster.mean_,
+            scale=st.session_state.forecaster.scale_,
+            device=st.session_state.forecaster.device,
+            background_df=st.session_state.df_win
+        )
+
+    explainer = st.session_state.explainer
+    xai_res = explainer.explain_window(df_win_sub, asset_info=asset_info, soc_priority=soc_priority)
 
     col_x1, col_x2 = st.columns([3, 2])
 
@@ -607,10 +625,10 @@ with tab_xai:
 
         fig_shap = px.bar(
             df_attr,
-            x='shap_value',
+            x='abs_shap',
             y='feature',
             orientation='h',
-            title='Top Driving Telemetry Features (SHAP Impact)',
+            title='Top Driving Telemetry Features (Absolute Impact)',
             color_discrete_sequence=['#00f2fe']
         )
         fig_shap.update_layout(
@@ -635,14 +653,22 @@ with tab_xai:
 
         st.markdown("#### TELEMETRY FEATURE MATRIX")
         st.dataframe(
-            df_attr[['feature', 'observed_value', 'baseline_value', 'shap_value']].rename(
+            df_attr[['feature', 'observed_value', 'baseline_value', 'abs_shap', 'shap_value', 'per_timestep']].rename(
                 columns={
                     'feature': 'Metric',
                     'observed_value': 'Observed',
                     'baseline_value': 'Baseline',
-                    'shap_value': 'SHAP Impact'
+                    'abs_shap': 'Absolute Impact',
+                    'shap_value': 'Net Directional Contribution',
+                    'per_timestep': 'Temporal Impact (4 Steps)'
                 }
             ),
+            column_config={
+                "Temporal Impact (4 Steps)": st.column_config.BarChartColumn(
+                    "Temporal Impact (4 Steps)",
+                    help="SHAP impact across the historical sequence windows",
+                )
+            },
             use_container_width=True
         )
 
