@@ -43,3 +43,14 @@ scratch/
 Thumbs.db
 .vscode/
 .idea/
+
+# .env
+.env
+.env.*
+
+# Data & Models
+data/
+data/raw/
+models/*.pth
+models/*.pkl
+models/*.json

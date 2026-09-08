@@ -135,14 +135,19 @@ def main():
     y_test_gt = test_df['is_attack'].values if 'is_attack' in test_df.columns else (test_df['target_risk_score'] > 0.30).astype(int)
     
     world_preds = forecaster.predict_k_steps(test_df, K=1)
-    world_pred_labels = (np.array(world_preds['risk_trajectory']) > 0.30).astype(int)
-    if len(world_pred_labels) < len(y_test_gt):
-        pad_len = len(y_test_gt) - len(world_pred_labels)
-        world_pred_labels = np.concatenate([np.zeros(pad_len), world_pred_labels])
+    world_pred_probs = np.array(world_preds['risk_trajectory'])
+    if len(world_pred_probs) < len(y_test_gt):
+        pad_len = len(y_test_gt) - len(world_pred_probs)
+        world_pred_probs = np.concatenate([np.zeros(pad_len), world_pred_probs])
     
     base_preds = base.predict_proba(test_df)
     
-    bench_res = BenchmarkEvaluator.evaluate_comparison(world_pred_labels, base_preds, y_test_gt)
+    metrics_by_threshold = {}
+    for t in np.arange(0.00, 1.01, 0.01):
+        t_str = f"{t:.2f}"
+        metrics_by_threshold[t_str] = BenchmarkEvaluator.evaluate_comparison(
+            world_pred_probs, base_preds, y_test_gt, threshold=t
+        )
 
     # PROVENANCE METADATA
     report = {
@@ -151,7 +156,7 @@ def main():
         "train_campaigns": train_camps,
         "test_campaigns": test_camps,
         "trained_at": datetime.now().isoformat(),
-        "metrics": bench_res
+        "metrics_by_threshold": metrics_by_threshold
     }
 
     with open(report_file, "w") as f:

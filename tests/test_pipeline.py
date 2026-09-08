@@ -1,11 +1,14 @@
 import pytest
 import os
+import sys
 import pandas as pd
 import numpy as np
 
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from src.parser import TrafficParser, FEATURE_COLUMNS
 from src.synthetic_generator import SyntheticAttackGenerator
-from src.world_model import WorldModelForecaster, MITREMapper, BaselineClassifier, BenchmarkEvaluator, AssetCriticalityManager, SOCRiskPrioritizer
+from src.world_model import WorldModelForecaster, RuleBasedMITREMapper, BaselineClassifier, BenchmarkEvaluator, AssetCriticalityManager, SOCRiskPrioritizer
 from src.explainer import AttackExplainer
 
 def test_synthetic_generator():
@@ -59,7 +62,7 @@ def test_mitre_mapper():
         'port_scan_score': 0.5,
         'iat_variance': 0.01
     }
-    stage_info = MITREMapper.map_state_to_stage(state_sample)
+    stage_info = RuleBasedMITREMapper.map_state_to_stage(state_sample)
 
     assert 'name' in stage_info, "Stage info should contain name."
     assert 'id' in stage_info, "Stage info should contain technique ID."

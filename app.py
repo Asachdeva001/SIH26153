@@ -9,7 +9,7 @@ import plotly.express as px
 
 from src.parser import TrafficParser, FEATURE_COLUMNS
 from src.synthetic_generator import SyntheticAttackGenerator
-from src.world_model import WorldModelForecaster, MITREMapper, BaselineClassifier, BenchmarkEvaluator, AssetCriticalityManager, SOCRiskPrioritizer
+from src.world_model import WorldModelForecaster, RuleBasedMITREMapper, BaselineClassifier, BenchmarkEvaluator, AssetCriticalityManager, SOCRiskPrioritizer
 from src.explainer import AttackExplainer
 
 # Page configuration
@@ -346,6 +346,18 @@ if 'baseline' not in st.session_state:
 if 'soc_action_status' not in st.session_state:
     st.session_state.soc_action_status = None
 
+@st.cache_data
+def load_benchmark_report():
+    if os.path.exists("models/benchmark_report.json"):
+        with open("models/benchmark_report.json", "r") as f:
+            return json.load(f)
+    elif os.path.exists("models/benchmark_report_synthetic.json"):
+        with open("models/benchmark_report_synthetic.json", "r") as f:
+            return json.load(f)
+    return None
+
+if 'benchmark_report_data' not in st.session_state:
+    st.session_state.benchmark_report_data = load_benchmark_report()
 
 # Sidebar Workbench Controls
 st.sidebar.markdown("<h3 style='font-family: Orbitron, sans-serif; background: linear-gradient(90deg, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight:900; letter-spacing:1.5px; text-transform:uppercase;'>⚡ CYBER CONTROL PANEL</h3>", unsafe_allow_html=True)
@@ -421,7 +433,24 @@ current_window_id = st.sidebar.slider(
     value=min(10, len(st.session_state.df_win) - 1)
 )
 
-risk_threshold = st.sidebar.slider("Alert Threshold", min_value=0.20, max_value=0.90, value=0.60, step=0.05)
+risk_threshold = st.sidebar.slider("Alert Threshold", min_value=0.20, max_value=0.90, value=0.60, step=0.01)
+
+st.sidebar.markdown("---")
+with st.sidebar.expander("SOC Tunable MITRE Rules"):
+    custom_thresholds = {
+        "exfil_tot_bytes": st.number_input("Exfil: Max Bytes", value=50000),
+        "exfil_bytes_pkt": st.number_input("Exfil: Bytes/Pkt", value=1200),
+        "c2_iat_var": st.number_input("C2: Max IAT Var", value=0.005, format="%.4f"),
+        "c2_unique_dsts": st.number_input("C2: Max Unique Dsts", value=2),
+        "c2_tot_bytes": st.number_input("C2: Min Bytes", value=1000),
+        "lateral_unique_dsts": st.number_input("Lateral: Min Unique Dsts", value=3),
+        "lateral_high_port_ratio": st.number_input("Lateral: Min High Port Ratio", value=0.4, format="%.2f"),
+        "initial_syn_ratio": st.number_input("Initial: Min SYN Ratio", value=0.3, format="%.2f"),
+        "initial_bytes_pkt": st.number_input("Initial: Min Bytes/Pkt", value=300),
+        "recon_port_scan_score": st.number_input("Recon: Min Port Scan Score", value=3.0, format="%.1f"),
+        "recon_syn_ratio": st.number_input("Recon: Alt Min SYN Ratio", value=0.5, format="%.2f"),
+        "recon_bytes_pkt": st.number_input("Recon: Alt Max Bytes/Pkt", value=150)
+    }
 
 
 # Government Official Header Banner
@@ -448,9 +477,9 @@ df_forecast = forecast_results['forecast_df']
 risk_trajectory = forecast_results['risk_trajectory']
 peak_forecast_risk = max(risk_trajectory) if len(risk_trajectory) > 0 else 0.0
 
-mitre_info = MITREMapper.map_state_to_stage(current_state_dict)
+mitre_info = RuleBasedMITREMapper.map_state_to_stage(current_state_dict, custom_thresholds=custom_thresholds)
 future_state_dict = df_forecast.iloc[-1].to_dict()
-future_mitre_info = MITREMapper.map_state_to_stage(future_state_dict)
+future_mitre_info = RuleBasedMITREMapper.map_state_to_stage(future_state_dict, custom_thresholds=custom_thresholds)
 
 # SOC Risk Prioritization calculation
 soc_priority = SOCRiskPrioritizer.calculate_prioritized_risk(peak_forecast_risk, selected_asset_ip, mitre_info)
@@ -572,8 +601,9 @@ with tab_timeline:
 with tab_mitre:
     st.subheader("MITRE ATT&CK Kill-Chain Progress Matrix")
     st.markdown("Tracks telemetry kill-chain phase evolution and maps predicted upcoming phases from the $K$-step forward state simulation.")
+    st.info("ℹ️ **Disclaimer**: This mapping uses a **Rule-Based Post-Processing Layer** with SOC Analyst Tunable Parameters (adjustable in the sidebar). It is explicitly separated from the underlying World Model neural network.")
 
-    stages = MITREMapper.STAGES
+    stages = RuleBasedMITREMapper.STAGES
     cols = st.columns(len(stages))
     current_stage_idx = next((i for i, s in enumerate(stages) if s['name'] == mitre_info['name']), 0)
     future_stage_idx = next((i for i, s in enumerate(stages) if s['name'] == future_mitre_info['name']), 0)
@@ -783,7 +813,18 @@ with tab_bench:
     base_preds = st.session_state.baseline.predict_proba(df_win_sub)[-K_steps:] if len(df_win_sub) >= K_steps else np.zeros(K_steps)
     gt_binary = (wm_preds > 0.40).astype(int)
 
-    bench_res = BenchmarkEvaluator.evaluate_comparison(wm_preds, base_preds, gt_binary, threshold=risk_threshold)
+    t_str = f"{risk_threshold:.2f}"
+    if 'benchmark_report_data' in st.session_state and st.session_state.benchmark_report_data is not None:
+        metrics_by_t = st.session_state.benchmark_report_data.get('metrics_by_threshold', {})
+        bench_res = metrics_by_t.get(t_str, None)
+    else:
+        bench_res = None
+        
+    if bench_res is None:
+        bench_res = BenchmarkEvaluator.evaluate_comparison(wm_preds, base_preds, gt_binary, threshold=risk_threshold)
+
+    lead_time_val = bench_res['world_model']['lead_time_windows']
+    lead_time_str = f"+{lead_time_val} Windows" if lead_time_val > 0 else "N/A"
 
     b_c1, b_c2 = st.columns(2)
 
@@ -796,7 +837,7 @@ with tab_bench:
                 "Precision": f"{bench_res['world_model']['precision']:.3f}",
                 "Recall": f"{bench_res['world_model']['recall']:.3f}",
                 "FPR": f"{bench_res['world_model']['fpr']:.3f}",
-                "Lead Time": "+3.5 Windows"
+                "Lead Time": lead_time_str
             },
             {
                 "Model Architecture": "Static Logistic Regression Baseline",

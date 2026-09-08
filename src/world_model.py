@@ -199,8 +199,8 @@ class WorldModelForecaster:
             'forecast_states': forecasted_states_unscaled
         }
 
-class MITREMapper:
-    """Maps state telemetry vectors to MITRE ATT&CK kill-chain stages."""
+class RuleBasedMITREMapper:
+    """Rule-Based Post-Processing Module mapping state telemetry vectors to MITRE ATT&CK kill-chain stages using SOC tunable parameters."""
 
     STAGES = [
         {"name": "Benign", "id": "TA0000", "technique": "Normal Traffic", "color": "#00f5d4", "severity_weight": 1.0},
@@ -211,8 +211,25 @@ class MITREMapper:
         {"name": "Exfiltration", "id": "TA0010", "technique": "T1041 Exfiltration Over C2 Channel", "color": "#ff4b4b", "severity_weight": 2.5}
     ]
 
+    SOC_TUNABLE_THRESHOLDS = {
+        "exfil_tot_bytes": 50000,
+        "exfil_bytes_pkt": 1200,
+        "c2_iat_var": 0.005,
+        "c2_unique_dsts": 2,
+        "c2_tot_bytes": 1000,
+        "lateral_unique_dsts": 3,
+        "lateral_high_port_ratio": 0.4,
+        "initial_syn_ratio": 0.3,
+        "initial_bytes_pkt": 300,
+        "recon_port_scan_score": 3.0,
+        "recon_syn_ratio": 0.5,
+        "recon_bytes_pkt": 150
+    }
+
     @classmethod
-    def map_state_to_stage(cls, state_dict: Dict) -> Dict:
+    def map_state_to_stage(cls, state_dict: Dict, custom_thresholds: Optional[Dict] = None) -> Dict:
+        t = custom_thresholds if custom_thresholds is not None else cls.SOC_TUNABLE_THRESHOLDS
+
         bytes_pkt = state_dict.get('bytes_per_packet_mean', 0)
         tot_bytes = state_dict.get('total_bytes', 0)
         syn_ratio = state_dict.get('syn_flag_ratio', 0)
@@ -222,11 +239,11 @@ class MITREMapper:
         unique_dsts = state_dict.get('unique_dst_ips', 1)
         high_port_ratio = state_dict.get('high_port_ratio', 0)
 
-        score_exfil = (tot_bytes > 50000 or bytes_pkt > 1200) * 0.95
-        score_c2 = (iat_var < 0.005 and unique_dsts <= 2 and tot_bytes > 1000) * 0.85
-        score_lateral = (unique_dsts >= 3 and high_port_ratio > 0.4) * 0.75
-        score_initial = (syn_ratio > 0.3 and bytes_pkt > 300) * 0.60
-        score_recon = (port_scan_score > 3.0 or (syn_ratio > 0.5 and bytes_pkt < 150)) * 0.40
+        score_exfil = (tot_bytes > t['exfil_tot_bytes'] or bytes_pkt > t['exfil_bytes_pkt']) * 0.95
+        score_c2 = (iat_var < t['c2_iat_var'] and unique_dsts <= t['c2_unique_dsts'] and tot_bytes > t['c2_tot_bytes']) * 0.85
+        score_lateral = (unique_dsts >= t['lateral_unique_dsts'] and high_port_ratio > t['lateral_high_port_ratio']) * 0.75
+        score_initial = (syn_ratio > t['initial_syn_ratio'] and bytes_pkt > t['initial_bytes_pkt']) * 0.60
+        score_recon = (port_scan_score > t['recon_port_scan_score'] or (syn_ratio > t['recon_syn_ratio'] and bytes_pkt < t['recon_bytes_pkt'])) * 0.40
 
         scores = [0.05, score_recon, score_initial, score_lateral, score_c2, score_exfil]
         max_idx = int(np.argmax(scores))

@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from typing import Tuple, Dict, List
+from typing import Tuple
 from src.parser import FEATURE_COLUMNS, TrafficParser
 
 class SyntheticAttackGenerator:
