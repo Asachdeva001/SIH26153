@@ -112,20 +112,43 @@ SIH26153/
 
 ---
 
-## 🛠️ Local Installation & Development
+## 🛠️ Local Installation, Training & Development
 
-### 1. Install Dependencies
+### 1. Clone & Install Dependencies
 ```bash
+git clone https://github.com/Asachdeva001/SIH26153.git
+cd SIH26153
 pip install -r requirements.txt
 ```
 
-### 2. Launch Local Dashboard
+### 2. Configure Kaggle Credentials
+Create a `.env` file in the root directory and add your Kaggle API credentials (you can generate these at `kaggle.com/settings/api`):
+```env
+KAGGLE_USERNAME=your_username
+KAGGLE_KEY=your_api_key
+```
+
+### 3. Download the Dataset
+We use the CSE-CIC-IDS2018 dataset from Kaggle. Run the download script to automatically fetch and extract it:
+```bash
+python scripts/download_dataset.py
+```
+
+### 4. Train the World Model & Baseline
+Train the PyTorch World Model and the Logistic Regression baseline on the dataset. This script ensures a strict chronological split to prevent leakage and dynamically calculates the SOC Benchmark comparison matrix.
+```bash
+python scripts/train.py
+```
+
+### 5. Launch the SOC Dashboard
+Start the interactive Streamlit Web UI:
 ```bash
 streamlit run app.py
 ```
 Open your browser at `http://localhost:8501`.
 
-### 3. Run Automated Unit Test Suite
+### 6. Run Automated Unit Test Suite
+Verify the integrity of the data pipelines, leakage prevention, and model architectures:
 ```bash
 python -m pytest tests/test_pipeline.py -v
 ```
