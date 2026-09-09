@@ -35,18 +35,106 @@ st.markdown("""
         color: #1f2937 !important;
     }
 
-    /* Hide Streamlit Hamburger Menu, Header Decoration, and Footer to remove change theme option */
-    #MainMenu {visibility: hidden !important;}
-    footer {visibility: hidden !important;}
-    header {visibility: hidden !important;}
+    /* Hide Streamlit default menu, footer & status widgets, but KEEP toolbar container for sidebar controls */
+    #MainMenu {display: none !important;}
+    footer {display: none !important;}
     div[data-testid="stDecoration"] {display: none !important;}
-    div[data-testid="stHeader"] {display: none !important;}
+    div[data-testid="stStatusWidget"] {display: none !important;}
+    header [data-testid="stHeaderActionElements"] {display: none !important;}
+    
+    /* Keep stHeader and stToolbar active so stSidebarCollapsedControl stays functional */
+    header[data-testid="stHeader"] {
+        background-color: transparent !important;
+        z-index: 99999 !important;
+        height: 3.75rem !important;
+    }
+
+    div[data-testid="stToolbar"] {
+        display: flex !important;
+        visibility: visible !important;
+    }
+
+    /* Style the Sidebar Reopen / Expand button for ALL Streamlit versions */
+    [data-testid="stSidebarCollapsedControl"],
+    [data-testid="stCollapsedControl"],
+    div[data-testid="stSidebarCollapsedControl"],
+    button[aria-label="Open sidebar"] {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        z-index: 999999 !important;
+        position: fixed !important;
+        top: 12px !important;
+        left: 12px !important;
+    }
+
+    [data-testid="stSidebarCollapsedControl"] button,
+    [data-testid="stCollapsedControl"] button,
+    button[aria-label="Open sidebar"] {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background-color: #0f172a !important;
+        color: #ffffff !important;
+        border: 2px solid #e0533c !important;
+        border-radius: 8px !important;
+        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.4) !important;
+        padding: 6px 10px !important;
+        transition: all 0.2s ease !important;
+        cursor: pointer !important;
+    }
+
+    [data-testid="stSidebarCollapsedControl"] button:hover,
+    [data-testid="stCollapsedControl"] button:hover,
+    button[aria-label="Open sidebar"]:hover {
+        background-color: #e0533c !important;
+        border-color: #ffffff !important;
+        transform: scale(1.1) !important;
+    }
+
+    [data-testid="stSidebarCollapsedControl"] svg,
+    [data-testid="stCollapsedControl"] svg,
+    button[aria-label="Open sidebar"] svg {
+        fill: #ffffff !important;
+        color: #ffffff !important;
+        stroke: #ffffff !important;
+        width: 1.25rem !important;
+        height: 1.25rem !important;
+    }
+
+    /* Style the Sidebar Collapse button when open */
+    [data-testid="stSidebarCollapseButton"],
+    button[aria-label="Close sidebar"] {
+        z-index: 999999 !important;
+    }
+
+    [data-testid="stSidebarCollapseButton"] button,
+    button[aria-label="Close sidebar"] {
+        color: #0f172a !important;
+        background-color: #e2e8f0 !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 6px !important;
+        transition: all 0.2s ease !important;
+    }
+    
+    [data-testid="stSidebarCollapseButton"] button:hover,
+    button[aria-label="Close sidebar"]:hover {
+        background-color: #e0533c !important;
+        color: #ffffff !important;
+        border-color: #e0533c !important;
+    }
+
+    [data-testid="stSidebarCollapseButton"] svg,
+    button[aria-label="Close sidebar"] svg {
+        fill: currentColor !important;
+        color: currentColor !important;
+    }
 
     /* Official Government Header Banner with Saffron Highlight */
     .gov-header {
         background: #0f172a;
         border-bottom: 4px solid #e0533c;
-        padding: 22px 28px;
+        padding: 20px 28px;
         margin-bottom: 24px;
         display: flex;
         justify-content: space-between;
@@ -143,23 +231,32 @@ st.markdown("""
         font-weight: 600;
     }
 
-    /* Clean Government Tab Styling */
+    /* Clean Government Top Navbar Tab Styling */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 6px;
-        background-color: #e2e8f0;
-        padding: 6px;
+        gap: 8px;
+        background-color: #ffffff;
+        padding: 8px 12px;
         border: 1px solid #cbd5e1;
-        border-radius: 6px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+        margin-bottom: 20px;
     }
 
     .stTabs [data-baseweb="tab"] {
-        height: 42px;
-        border-radius: 4px;
-        color: #334155;
+        height: 44px;
+        border-radius: 6px;
+        color: #475569;
         font-weight: 700;
         font-size: 0.85rem;
         text-transform: uppercase;
         border: 1px solid transparent;
+        transition: all 0.2s ease;
+        padding: 0 16px;
+    }
+
+    .stTabs [data-baseweb="tab"]:hover {
+        background-color: #f1f5f9;
+        color: #0f172a;
     }
 
     .stTabs [aria-selected="true"] {
@@ -167,7 +264,7 @@ st.markdown("""
         color: #ffffff !important;
         font-weight: 800 !important;
         border: 1px solid #0f172a !important;
-        box-shadow: 0 2px 6px rgba(15, 23, 42, 0.15);
+        box-shadow: 0 3px 8px rgba(15, 23, 42, 0.2) !important;
     }
 
     /* SOC Response Playbook Card */
@@ -368,12 +465,33 @@ with st.sidebar.expander("SOC Tunable MITRE Rules"):
 # Government Official Header Banner
 st.markdown("""
 <div class="gov-header">
-    <div>
-        <div class="gov-title">NATIONAL CYBER DEFENSE <span class="saffron">OPERATIONS</span></div>
-        <div class="gov-subtitle">GOVERNMENT OF INDIA • PREDICTIVE CYBER DEFENSE & ATTACK FORECASTING PORTAL (SIH26153)</div>
+    <div style="display: flex; align-items: center; gap: 16px;">
+        <button onclick="
+            const targetBtn = window.parent.document.querySelector('[data-testid=\'stSidebarCollapsedControl\'] button') || 
+                              window.parent.document.querySelector('[data-testid=\'stSidebarCollapseButton\'] button') ||
+                              window.parent.document.querySelector('button[aria-label=\'Open sidebar\']') ||
+                              window.parent.document.querySelector('button[aria-label=\'Close sidebar\']');
+            if (targetBtn) { targetBtn.click(); }
+        " style="background: #1e293b; color: #ffffff; border: 1.5px solid #e0533c; padding: 8px 14px; border-radius: 6px; font-weight: 800; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.25); transition: background 0.2s ease;" onmouseover="this.style.background='#e0533c';" onmouseout="this.style.background='#1e293b';" title="Toggle Control Panel Sidebar">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle;">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="9" y1="3" x2="9" y2="21"></line>
+                <path d="M13 15l3-3-3-3"></path>
+            </svg>
+            <span>SIDEBAR</span>
+        </button>
+        <div>
+            <div class="gov-title">NATIONAL CYBER DEFENSE <span class="saffron">OPERATIONS</span></div>
+            <div class="gov-subtitle">GOVERNMENT OF INDIA • PREDICTIVE CYBER DEFENSE & ATTACK FORECASTING PORTAL (SIH26153)</div>
+        </div>
     </div>
-    <div class="gov-seal">
-        OFFICIAL USE ONLY
+    <div style="display: flex; align-items: center; gap: 12px;">
+        <span style="background: rgba(34, 197, 94, 0.15); border: 1px solid #22c55e; color: #4ade80; padding: 6px 12px; font-size: 0.75rem; font-weight: 800; border-radius: 4px; letter-spacing: 0.5px;">
+            🟢 LIVE THREAT STREAM
+        </span>
+        <div class="gov-seal">
+            OFFICIAL USE ONLY
+        </div>
     </div>
 </div>
 """, unsafe_allow_html=True)
