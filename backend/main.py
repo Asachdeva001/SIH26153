@@ -1,4 +1,9 @@
 import os
+import sys
+
+# Add parent directory to path to allow running from the backend directory
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 

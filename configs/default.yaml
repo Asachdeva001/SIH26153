@@ -1,7 +1,0 @@
-training:
-  epochs: 35
-  learning_rate: 0.005
-  history_len: 4
-  hidden_dim: 64
-  seed: 42
-  data_dir: data/raw/ids-intrusion-csv/

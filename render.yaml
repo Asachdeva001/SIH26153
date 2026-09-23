@@ -1,9 +1,0 @@
-services:
-  - type: web
-    name: sih26153
-    env: python
-    buildCommand: pip install --no-cache-dir -r requirements.txt
-    startCommand: sh -c "streamlit run app.py --server.port ${PORT:-8501} --server.address 0.0.0.0 --server.headless true --server.enableCORS false --server.enableXsrfProtection false"
-    envVars:
-      - key: PYTHON_VERSION
-        value: 3.10.12
