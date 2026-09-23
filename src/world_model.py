@@ -85,25 +85,42 @@ class WorldModelForecaster:
             self.is_fitted = True
             return
 
-        seq_tensor = torch.tensor(np.array(sequences), dtype=torch.float32).to(self.device)
-        st_tensor = torch.tensor(np.array(target_states), dtype=torch.float32).to(self.device)
-        rk_tensor = torch.tensor(np.array(target_risks), dtype=torch.float32).unsqueeze(1).to(self.device)
+        from torch.utils.data import DataLoader, TensorDataset
+        from tqdm import tqdm
+
+        seq_tensor = torch.tensor(np.array(sequences), dtype=torch.float32)
+        st_tensor = torch.tensor(np.array(target_states), dtype=torch.float32)
+        rk_tensor = torch.tensor(np.array(target_risks), dtype=torch.float32).unsqueeze(1)
+
+        dataset = TensorDataset(seq_tensor, st_tensor, rk_tensor)
+        batch_size = 1024
+        dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
         optimizer = optim.Adam(self.model.parameters(), lr=lr)
         criterion_state = nn.MSELoss()
         criterion_risk = nn.BCELoss()
 
         self.model.train()
+        print(f"Starting training on {len(sequences)} sequences with batch size {batch_size}...")
         for ep in range(epochs):
-            optimizer.zero_grad()
-            pred_st, pred_rk = self.model(seq_tensor)
+            total_loss = 0.0
+            with tqdm(dataloader, desc=f"Epoch {ep+1}/{epochs}", unit="batch") as pbar:
+                for batch_seq, batch_st, batch_rk in pbar:
+                    batch_seq = batch_seq.to(self.device)
+                    batch_st = batch_st.to(self.device)
+                    batch_rk = batch_rk.to(self.device)
+                    
+                    optimizer.zero_grad()
+                    pred_st, pred_rk = self.model(batch_seq)
 
-            loss_st = criterion_state(pred_st, st_tensor)
-            loss_rk = criterion_risk(pred_rk, rk_tensor)
-            loss = loss_st + 2.0 * loss_rk
+                    loss_st = criterion_state(pred_st, batch_st)
+                    loss_rk = criterion_risk(pred_rk, batch_rk)
+                    loss = loss_st + 2.0 * loss_rk
 
-            loss.backward()
-            optimizer.step()
+                    loss.backward()
+                    optimizer.step()
+                    total_loss += loss.item()
+                    pbar.set_postfix({"loss": f"{loss.item():.4f}"})
 
         self.model.eval()
         self.is_fitted = True

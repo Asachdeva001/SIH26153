@@ -214,7 +214,8 @@ class TrafficParser:
         total_windows = int(np.ceil(max_time / self.window_size_sec)) + 1
         total_windows = max(total_windows, df['window_idx'].max() + 1)
 
-        for w_idx in range(total_windows):
+        from tqdm import tqdm
+        for w_idx in tqdm(range(total_windows), desc="Aggregating Windows"):
             start_t = w_idx * self.window_size_sec
             end_t = (w_idx + 1) * self.window_size_sec
 
