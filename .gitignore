@@ -56,3 +56,10 @@ MANIFEST
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Large Files & Data
+data/
+models/
+*.csv
+*.pth
+*.pkl

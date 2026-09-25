@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from src.world_model import RuleBasedMITREMapper
+from backend.src.world_model import RuleBasedMITREMapper
 from backend.schemas.requests import MitreRequest, MitreResponse
 
 router = APIRouter()

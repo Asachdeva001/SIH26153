@@ -1,6 +1,6 @@
 import os
-from src.world_model import WorldModelForecaster, BaselineClassifier
-from src.synthetic_generator import SyntheticAttackGenerator
+from backend.src.world_model import WorldModelForecaster, BaselineClassifier
+from backend.src.synthetic_generator import SyntheticAttackGenerator
 
 class MLModelLoader:
     def __init__(self):

@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from src.world_model import SOCRiskPrioritizer
+from backend.src.world_model import SOCRiskPrioritizer
 from backend.schemas.requests import SOCRequest, SOCResponse
 
 router = APIRouter()

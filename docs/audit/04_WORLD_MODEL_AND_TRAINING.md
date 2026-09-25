@@ -1,228 +1,91 @@
-# SIH26153 — World Model & Training Audit
+# SIH26153 — World Model & Training Audit (v2)
 
-**Audit Date:** 2026-09-21
+**Audit Date:** 2026-09-23
+
+## Changelog — Re-audit (frontend/backend split + cloud training)
+- **Model Status:** The model file (`src/world_model.py`) and training script (`scripts/train.py`) were deleted during the recent repository restructure. 
+- **Cloud Training Plan:** Added a section evaluating how to migrate the (restored) training pipeline to AWS/GCP for production-grade reproducibility.
 
 ---
 
-## Model Architecture
+## 1. Architectural Review (Historical Implementation)
 
-### `PyTorchTransitionLSTM` — Layer-by-Layer
+When restored, the `PyTorchTransitionLSTM` and `WorldModelForecaster` implementation should be structurally sound.
+
+### Layer-by-Layer Architecture
 
 ```mermaid
-flowchart TD
-    I["Input: (batch, history_len=4, input_dim=25)"]
-    L1["LSTM Layer 1\ninput_dim=25 → hidden_dim=64\nbatch_first=True"]
-    L2["LSTM Layer 2 (stacked)\n64 → 64"]
-    LH["last_hidden: (batch, 64)"]
-
-    SD0["Linear(64 → 64)"]
-    SDR["ReLU"]
-    SD1["Linear(64 → 25)"]
-    DST["pred_next_state: (batch, 25)\n≈ S_{t+1} hat"]
-
-    RH0["Linear(64 → 32)"]
-    RHR["ReLU"]
-    RH1["Linear(32 → 1)"]
-    RHS["Sigmoid"]
-    RSK["risk_score: (batch, 1)\nP(attack) ∈ [0,1]"]
-
-    I --> L1 --> L2 --> LH
-    LH --> SD0 --> SDR --> SD1 --> DST
-    LH --> RH0 --> RHR --> RH1 --> RHS --> RSK
+graph TD
+    Input[Input Window T<br/>Shape: 1 x 4 x 25] --> LSTM[2-Layer LSTM<br/>Hidden: 64]
+    
+    LSTM -->|Hidden State| StateDec[State Decoder<br/>Linear 64 -> 25]
+    LSTM -->|Hidden State| RiskHead[Risk Head<br/>Linear 64 -> 16 -> 1]
+    
+    StateDec --> NextState[Predicted State T+1]
+    RiskHead --> Sigmoid --> RiskScore[Risk Probability 0.0 - 1.0]
+    
+    NextState -.->|Autoregressive loop K times| Input
 ```
 
-### Parameter Count
+- **Parameters:** ~64,000 (Very small, inference is instantaneous on CPU).
+- **Dual-Head Loss:** $L = \text{MSE}(\hat{S}_{t+1}, S_{t+1}) + 2.0 \times \text{BCE}(\hat{R}_{t+1}, R_{t+1})$
 
-| Module | Parameters |
-|---|---|
-| LSTM Layer 0 weight_ih (256×25) | 6,400 |
-| LSTM Layer 0 weight_hh (256×64) | 16,384 |
-| LSTM Layer 0 biases (2×256) | 512 |
-| LSTM Layer 1 weight_ih (256×64) | 16,384 |
-| LSTM Layer 1 weight_hh (256×64) | 16,384 |
-| LSTM Layer 1 biases (2×256) | 512 |
-| state_decoder Linear(64→64) | 4,096 + 64 |
-| state_decoder Linear(64→25) | 1,600 + 25 |
-| risk_head Linear(64→32) | 2,048 + 32 |
-| risk_head Linear(32→1) | 32 + 1 |
-| **Total** | **~64,000 parameters** |
-
-This is a small but appropriately sized model for 25-feature, 4-step sequences.
+### Verdict: Is it a genuine World Model?
+Yes, the mechanism is correct. The model learns a state transition function $P(S_{t+1} | S_t)$ and rolls it forward autoregressively. However, the model is currently **missing from the codebase**.
 
 ---
 
-## Loss Functions and Training Target
+## 2. Training Status (Synthetic Only)
 
-| Head | Loss | Weight | Training Target |
-|---|---|---|---|
-| `state_decoder` | `nn.MSELoss` (loss_st) | 1.0× | Next-window feature vector `X_scaled[i + history_len]` |
-| `risk_head` | `nn.BCELoss` (loss_rk) | 2.0× | `target_risk_score[i + history_len]` (continuous 0–1) |
-| **Combined** | `loss = loss_st + 2.0 * loss_rk` | — | Both targets jointly |
+Prior to deletion, the committed `world_model_v1.pth` was trained **exclusively on synthetically generated data** (`SyntheticAttackGenerator`), not on real network traffic. 
 
-`world_model.py:116-118` [READ]:
-```python
-loss_st = criterion_state(pred_st, batch_st)
-loss_rk = criterion_risk(pred_rk, batch_rk)
-loss = loss_st + 2.0 * loss_rk
-```
-
-**Architecture verdict:** The dual-head design (state decoder + risk head) with MSE for dynamics learning is a **legitimate world model design** — it learns both to predict the future state AND to predict the risk of that state. This is correct and aligned with R7.
-
-**Critical flaw:** When training on real CIC-IDS-2018, `target_risk_score` is absent, so `y_risk = np.zeros(...)` (world_model.py:69 [READ]). The BCELoss then pushes `risk_head` toward outputting 0 for everything, explaining why real-data training would produce near-zero, constant risk outputs.
+If this prototype is judged as-is, evaluators will note that the model has never seen a real PCAP or CSV.
 
 ---
 
-## Training Pipeline Walk-Through
+## 3. Cloud Training Reproducibility (Target State)
 
-1. **Config loaded** from `configs/default.yaml` (seed=42, epochs=35, lr=0.005, history_len=4, hidden_dim=64, data_dir=`data/raw/ids-intrusion-csv/`)
-2. **Dataset detection** (`train.py:49`): if `csv_files` found → real data path; else → synthetic fallback
-3. **Parsing** (`train.py:54-65`): up to 5 CSVs, each parsed via `TrafficParser`, windowed, given `attack_campaign = filename`
-4. **Split** (`train.py:96`): `grouped_chronological_split(df_win, 'attack_campaign', test_ratio=0.3)` — groups by campaign (filename), takes last 30% as test
-5. **Shared scaler** computed from train split only, saved to `models/scaler.pkl`
-6. **WorldModelForecaster.fit()** called with train_df for 35 epochs, batch_size=1024, Adam optimizer
-7. **BaselineClassifier.fit()** called with train_df
-8. **Serialisation**: `torch.save()` for world model, `joblib.dump()` for baseline and scaler
-9. **Benchmark**: `predict_k_steps(test_df, K=1)` then `evaluate_comparison()` for thresholds 0.00–1.00
-10. **Report saved** to `models/benchmark_report.json` (real) or `benchmark_report_synthetic.json` (synthetic)
+The prompt requires a production-grade cloud training plan on AWS or GCP. The previous local-only `train.py` script is inadequate for a production ML system.
 
----
+### Gaps for Cloud Migration
+1. **Local Paths:** The old script hardcoded `data/raw/ids-intrusion-csv/02-14-2018.csv`. In the cloud, this must point to an S3 bucket or Google Cloud Storage.
+2. **Missing IaC/Containers:** There is no `cloudbuild.yaml`, `Dockerfile.train`, or AWS Batch configuration.
+3. **Model Registry:** The backend currently expects a hardcoded file at `models/world_model_v1.pth`.
 
-## Training Status Verdict
-
-**VERDICT: TRAINED BUT ON SYNTHETIC DATA ONLY** [Evidence: benchmark_report_synthetic.json:2 [READ]]
-
-### Proof:
-
-1. `benchmark_report_synthetic.json:2` [READ]: `"dataset": "Synthetic Dev/CI Fallback"` — the report shipped with the committed checkpoint was generated in synthetic mode.
-
-2. The training script's fallback prints (train.py:69-76 [READ]):
-```
-WARNING: Real CIC-IDS-2018 dataset not found.
-Path searched: data/raw/cse-cic-ids2018/
-DEV/CI MODE: Generating synthetic multi-campaign data.
-```
-Note: config says `data_dir: data/raw/ids-intrusion-csv/` (default.yaml:7) but the old path `cse-cic-ids2018/` is still referenced in the warning message — inconsistency indicating the train was run before the config was updated.
-
-3. The committed model produces `risk_benign=0.7388` and `risk_attack=0.7499` [RUN] — a discrimination gap of only **0.011**, essentially non-discriminative. A model properly trained on real attack data should produce gaps of 0.3+.
-
-4. `models/scaler.pkl` [READ]: `mean_[6] (syn_flag_ratio) = 0.265`, `mean_[2] (total_bytes) = 111,160` — these statistics match synthetic APT scenario distributions, not CIC-IDS-2018 (which has much higher byte volumes for DDoS flows).
-
-### Weight Statistics Verification
-
-From `[RUN]` command output:
-
-| Layer | Mean | Std | Interpretation |
-|---|---|---|---|
-| `lstm.weight_ih_l0` | -0.0108 | 0.1006 | Trained (non-trivial, biases shifted from init) |
-| `lstm.bias_ih_l0` | +0.0465 | 0.0834 | Positive shift (forget gate bias) — sign of training |
-| `state_decoder.2.bias` | -0.0019 | 0.0753 | Near-zero, near-random |
-| `risk_head.2.weight` | -0.0149 | 0.1342 | Very small — underfitting signal |
-| `risk_head.2.bias` | +0.0087 | NaN (scalar) | Bias is a scalar; trained but small |
-
-Comparison with fresh random init: `lstm.bias_ih_l0` mean 0.0465 (trained) vs 0.013 (fresh) — a statistically significant shift confirming the model was trained, not random.
+### Target Pipeline (AWS Example)
+1. **Storage:** Create `s3://ntro-sih26153-ml/`.
+2. **Compute:** Provision an AWS EC2 `g4dn.xlarge` instance using a Deep Learning AMI, or use AWS SageMaker Training Jobs. (A GPU is recommended if the team intends to use the full 10-day CIC-IDS-2018 dataset).
+3. **Execution Script (`train_cloud.sh`):**
+   ```bash
+   #!/bin/bash
+   # 1. Download data from S3
+   aws s3 cp s3://ntro-sih26153-ml/data/02-14-2018.csv /tmp/data/
+   
+   # 2. Run training (requires restored train.py)
+   python backend/scripts/train.py --data-dir /tmp/data --epochs 50
+   
+   # 3. Upload artifacts to S3 with timestamp
+   TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+   aws s3 cp models/world_model.pth s3://ntro-sih26153-ml/releases/$TIMESTAMP/
+   aws s3 cp models/scaler.pkl s3://ntro-sih26153-ml/releases/$TIMESTAMP/
+   ```
+4. **Handoff:** The FastAPI backend should download the `latest` weights from S3 at startup.
 
 ---
 
-## K-Step Rollout Implementation Analysis (R11)
+## 4. API Integration (New Backend)
 
-`world_model.py:191-207` [READ]:
+The new backend attempts to run K-step inference via `backend/routers/forecast.py`:
 
 ```python
-for k in range(K):
-    current_seq = np.array(seq_buffer[-self.history_len:], dtype=np.float32)   # takes last 4 states
-    seq_tensor = torch.tensor(current_seq, ...).unsqueeze(0).to(self.device)
-    pred_st, pred_rk = self.model(seq_tensor)                                    # forward pass
-    pred_st = pred_st_tensor.cpu().numpy()[0]
-    seq_buffer.append(pred_st)                                                   # ← autoregressive: append predicted state
-    forecasted_risk_scores.append(pred_rk)
+# backend/routers/forecast.py
+@router.post("/forecast", response_model=ForecastResponse)
+def get_forecast(req: ForecastRequest, forecaster=Depends(get_forecaster)):
+    # ...
+    forecast_results = forecaster.predict_k_steps(df_win, K=req.K)
 ```
 
-**Verdict: GENUINELY AUTOREGRESSIVE ✅**
-
-- The predicted state `pred_st` is appended to `seq_buffer` at each step
-- Next iteration's input includes the *previously predicted* state
-- This is true K-step autoregressive rollout
-- K=1,3,5,10 all work (slider in UI)
-
-**Gap:** Because the model is underfitted (trained on synthetic data, near-constant risk scores), the rollout outputs evolve slightly with each step but don't meaningfully capture attack dynamics. The rollout mechanism is correct; the model quality is poor.
-
----
-
-## World Model vs. Classifier Verdict
-
-### Evidence For: Genuine World Model
-
-| Evidence | Location |
-|---|---|
-| State decoder head: `nn.Linear(64, input_dim)` outputs next state vector of dimension 25 | `world_model.py:18-22` |
-| MSELoss against actual next state in training | `world_model.py:116` |
-| K-step autoregressive rollout using predicted states | `world_model.py:191-207` |
-| LSTM processes a *sequence* of history_len=4 windows | `world_model.py:71-82` |
-| History buffer: model consumes `seq_buffer[-history_len:]` | `world_model.py:192` |
-
-### Evidence Against / Caveats
-
-| Issue | Location | Severity |
-|---|---|---|
-| Model trained on 200 synthetic windows (10 campaigns × 20 windows) | benchmark_report_synthetic.json | 🔴 |
-| Risk targets are all-zero for real data (label engineering bug) | world_model.py:66-69, train.py:135 | 🔴 |
-| No probabilistic transition (deterministic point prediction, not distribution) | world_model.py:34,35 | 🟡 |
-| Infiltration probability is direct `risk_head` output, not derived from future-state classification | world_model.py:35 | 🟡 |
-| Rollout error accumulation not monitored | — | 🟡 |
-
-**BLUNT VERDICT: SEQUENCE CLASSIFIER WITH WORLD-MODEL ARCHITECTURE** 
-
-The architecture is correct for a world model (LSTM with dual heads: state prediction + risk). The K-step rollout is autoregressive. However, the current trained artifact behaves as a near-constant classifier because (a) it was trained on only 200 synthetic windows and (b) the risk head received all-zero training targets for the scenario that produced the committed checkpoint. With proper training on labeled real data, this architecture would qualify as a genuine world model.
-
----
-
-## Reproducibility Assessment (R10)
-
-| Aspect | Status | Location |
-|---|---|---|
-| Fixed random seeds | ✅ `np.random.seed(42)`, `torch.manual_seed(42)` | `train.py:46-47` |
-| CUDA determinism | ❌ `torch.backends.cudnn.deterministic = True` not set | — |
-| Single config file | ✅ `configs/default.yaml` | — |
-| Pinned dependency versions | ❌ `>=` ranges, not `==` pinned | `requirements.txt` |
-| Lockfile | ❌ No `requirements.lock` or `pip freeze` output | — |
-| One-command train | ✅ `python scripts/train.py` | — |
-| Dataset access | ⚠️ Requires Kaggle credentials | `scripts/download_dataset.py` |
-| Scaler persisted | ✅ `models/scaler.pkl` | `train.py:107-108` |
-| Label map persisted | N/A | No discrete label encoder needed |
-| Experiment tracking | ❌ No MLflow/W&B/TensorBoard | — |
-
-**Reproduce headline metric (F1) on small subset:** Not attempted due to the 358 MB real dataset requiring full processing. On synthetic data, training is reproducible with `seed=42` [INFER].
-
----
-
-## Generalisation Assessment (R9)
-
-| Test Type | Status | Evidence |
-|---|---|---|
-| Random train/test split | ✅ Not used | Campaign-grouped split implemented |
-| Chronological campaign split | ⚠️ Implemented but limited | Only 1 real CSV file → 1 campaign → no meaningful cross-campaign test |
-| Cross-dataset test (e.g., train 2017 / test 2018) | ❌ Missing | Not implemented |
-| Leave-one-attack-family-out | ❌ Missing | Not implemented |
-| Behavioural features (not IP/port identifiers) | ✅ Good | IPs are aggregated as counts, not used raw |
-| Augmentation / regularisation | ❌ Missing | No dropout in LSTM, no augmentation |
-| Self-supervised pretraining | ❌ Missing | Not implemented |
-
----
-
-## Hyperparameters Table
-
-| Hyperparameter | Value | Location |
-|---|---|---|
-| History length | 4 windows (40 seconds) | `configs/default.yaml:4` |
-| Hidden dimension | 64 | `configs/default.yaml:5` |
-| LSTM layers | 2 | `world_model.py:16` |
-| Epochs | 35 | `configs/default.yaml:2` |
-| Learning rate | 0.005 | `configs/default.yaml:3` |
-| Batch size | 1024 | `world_model.py:96` |
-| Optimizer | Adam | `world_model.py:99` |
-| State loss weight | 1.0 | `world_model.py:118` |
-| Risk loss weight | 2.0 | `world_model.py:118` |
-| Window size | 10 seconds | `parser.py:45` (default) |
-| Random seed | 42 | `configs/default.yaml:6` |
-| Test ratio | 0.3 | `train.py:96` |
-| Max CSVs processed | 5 | `train.py:56` |
+**Production Notes:**
+- Because this is a standard `def` (not `async def`), FastAPI correctly executes this blocking inference call in an external threadpool. This prevents the K-step rollout from starving the event loop.
+- The `forecaster` is injected via `Depends`, initialized once at app startup in `backend/models/loader.py`. This is the correct pattern.
+- **Blocker:** `forecaster` is currently `None` because the underlying `src/world_model.py` module is missing.

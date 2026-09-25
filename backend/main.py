@@ -1,13 +1,14 @@
 import os
 import sys
 
-# Add parent directory to path to allow running from the backend directory
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# Add the parent directory to sys.path so that 'from backend...' imports work 
+# even when running uvicorn from inside the backend directory.
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.models.loader import ml_models
+from backend.models.loader import ml_models, get_forecaster
 from backend.routers import (
     scenario,
     upload,
@@ -26,9 +27,10 @@ app = FastAPI(
 )
 
 # Allow CORS for Next.js frontend
+frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:3000")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Adjust for prod
+    allow_origins=[frontend_url],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -52,6 +54,13 @@ app.include_router(xai.router, prefix="/api", tags=["xai"])
 app.include_router(soc.router, prefix="/api", tags=["soc"])
 app.include_router(benchmark.router, prefix="/api", tags=["benchmark"])
 app.include_router(report.router, prefix="/api", tags=["report"])
+
+@app.get("/healthz")
+def healthz(forecaster=Depends(get_forecaster)):
+    if forecaster is None:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=503, detail="Model not loaded")
+    return {"status": "ok", "model_loaded": True}
 
 @app.get("/")
 def read_root():

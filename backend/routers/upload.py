@@ -1,15 +1,22 @@
 import os
 import shutil
-from fastapi import APIRouter, UploadFile, File
-from src.parser import TrafficParser
+from fastapi import APIRouter, UploadFile, File, Request, HTTPException
+from backend.src.parser import TrafficParser
 from backend.schemas.requests import ScenarioResponse
 
 router = APIRouter()
 
+MAX_UPLOAD_SIZE = int(os.environ.get("MAX_UPLOAD_SIZE", 500 * 1024 * 1024))
+
 @router.post("/upload", response_model=ScenarioResponse)
-async def upload_file(file: UploadFile = File(...)):
+def upload_file(request: Request, file: UploadFile = File(...)):
+    content_length = request.headers.get("content-length")
+    if content_length is not None and int(content_length) > MAX_UPLOAD_SIZE:
+        raise HTTPException(status_code=413, detail="Payload Too Large")
+
     os.makedirs("scratch", exist_ok=True)
-    temp_path = os.path.join("scratch", file.filename)
+    safe_filename = os.path.basename(file.filename)
+    temp_path = os.path.join("scratch", safe_filename)
     
     with open(temp_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)

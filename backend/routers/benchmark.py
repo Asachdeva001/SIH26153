@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from fastapi import APIRouter, Depends
 from backend.models.loader import get_baseline
-from src.world_model import BenchmarkEvaluator
+from backend.src.world_model import BenchmarkEvaluator
 from backend.schemas.requests import BenchmarkRequest, BenchmarkResponse
 
 router = APIRouter()
@@ -25,7 +25,12 @@ def get_benchmark(req: BenchmarkRequest, baseline=Depends(get_baseline)):
     # Baseline predictions for the same future window (static)
     base_preds = baseline.predict_proba(df_win)[-req.K:]
     
-    gt_binary = (wm_preds > 0.40).astype(int)
+    if 'is_attack' in df_win.columns:
+        gt_binary = df_win['is_attack'].values[-req.K:]
+    elif 'target_risk_score' in df_win.columns:
+        gt_binary = (df_win['target_risk_score'].values[-req.K:] > 0.30).astype(int)
+    else:
+        gt_binary = np.zeros(req.K, dtype=int)
     
     bench_res = BenchmarkEvaluator.evaluate_comparison(
         wm_preds, 

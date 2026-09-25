@@ -1,6 +1,6 @@
 import json
 from fastapi import APIRouter
-from src.synthetic_generator import SyntheticAttackGenerator
+from backend.src.synthetic_generator import SyntheticAttackGenerator
 from backend.schemas.requests import ScenarioResponse
 
 router = APIRouter()

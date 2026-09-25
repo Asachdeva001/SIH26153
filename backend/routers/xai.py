@@ -1,8 +1,8 @@
 import pandas as pd
 from fastapi import APIRouter, Depends
 from backend.models.loader import get_forecaster
-from src.explainer import AttackExplainer
-from src.world_model import AssetCriticalityManager
+from backend.src.explainer import AttackExplainer
+from backend.src.world_model import AssetCriticalityManager
 from backend.schemas.requests import XAIRequest, XAIResponse
 
 router = APIRouter()
