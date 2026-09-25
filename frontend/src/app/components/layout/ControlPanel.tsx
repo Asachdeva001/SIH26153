@@ -1,4 +1,5 @@
 import React, { useRef } from 'react';
+import { Gauge, LayoutDashboard, ShieldCheck, SlidersHorizontal, Upload } from 'lucide-react';
 
 const SCENARIOS = [
   "APT Multi-Stage Campaign",
@@ -45,33 +46,45 @@ export default function ControlPanel(props: ControlPanelProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="w-80 h-full bg-slate-100 border-r border-slate-300 p-4 overflow-y-auto flex-shrink-0 text-slate-800">
-      <h3 className="font-extrabold text-slate-900 tracking-wide text-lg mb-1">
-        🏛️ CYBER CONTROL <span className="text-[var(--color-gov-saffron)]">PANEL</span>
-      </h3>
-      <p className="text-slate-600 text-xs uppercase tracking-wide mb-4">Official Cyber Telemetry & Attack Forecasting System</p>
-      
-      <hr className="border-slate-300 mb-4" />
+    <aside className="no-scrollbar flex h-full w-62 shrink-0 flex-col overflow-y-auto bg-gov-blue px-4 py-5 text-white">
+      <div className="mb-8 flex items-center gap-3 px-2">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-(--purple) shadow-lg shadow-violet-950/30"><ShieldCheck size={22} /></div>
+        <div><div className="text-base font-extrabold tracking-tight">Elevate</div><div className="text-[10px] font-medium text-indigo-200/60">Cyber operations</div></div>
+      </div>
+
+      <nav className="space-y-1">
+        <p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-indigo-200/40">Workspace</p>
+        <div className="flex w-full items-center gap-3 rounded-xl bg-(--purple) px-3 py-2.5 text-left text-xs font-semibold text-white shadow-lg shadow-violet-950/20">
+          <LayoutDashboard size={17} /><span>Dashboard</span>
+        </div>
+      </nav>
+
+      <div className="my-7 border-t border-white/10" />
+
+      <div className="mb-5 flex items-center justify-between px-2">
+        <div className="flex items-center gap-2"><SlidersHorizontal size={15} className="text-indigo-200/70" /><span className="text-xs font-bold text-indigo-100">Live controls</span></div>
+        <span className="h-2 w-2 rounded-full bg-(--green) shadow-[0_0_0_4px_rgba(55,185,121,0.14)]" />
+      </div>
       
       <div className="mb-6">
-        <label className="block text-sm font-bold mb-2">TELEMETRY INPUT DATASET</label>
+        <label className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-indigo-200/50">Telemetry dataset</label>
         <div className="flex flex-col gap-2">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="radio" checked={dataSource === "Synthetic Demo Scenario"} onChange={() => setDataSource("Synthetic Demo Scenario")} className="accent-slate-900" />
-            <span className="text-sm">Synthetic Demo Scenario</span>
+          <label className="flex cursor-pointer items-center gap-2 text-xs text-indigo-50/80">
+            <input type="radio" checked={dataSource === "Synthetic Demo Scenario"} onChange={() => setDataSource("Synthetic Demo Scenario")} className="accent-(--purple)" />
+            <span>Synthetic demo scenario</span>
           </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="radio" checked={dataSource === "Upload PCAP / CSV File"} onChange={() => setDataSource("Upload PCAP / CSV File")} className="accent-slate-900" />
-            <span className="text-sm">Upload PCAP / CSV File</span>
+          <label className="flex cursor-pointer items-center gap-2 text-xs text-indigo-50/80">
+            <input type="radio" checked={dataSource === "Upload PCAP / CSV File"} onChange={() => setDataSource("Upload PCAP / CSV File")} className="accent-(--purple)" />
+            <span>Upload PCAP / CSV file</span>
           </label>
         </div>
       </div>
 
       {dataSource === "Synthetic Demo Scenario" ? (
         <div className="mb-6">
-          <label className="block text-sm font-bold mb-2">Select Multi-Stage Scenario</label>
+          <label className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-indigo-200/50">Multi-stage scenario</label>
           <select 
-            className="w-full p-2 border border-slate-300 rounded bg-white text-sm"
+            className="w-full rounded-lg border border-white/10 bg-white/10 p-2 text-xs text-white outline-none"
             value={scenario}
             onChange={(e) => setScenario(e.target.value)}
           >
@@ -80,7 +93,7 @@ export default function ControlPanel(props: ControlPanelProps) {
         </div>
       ) : (
         <div className="mb-6">
-          <label className="block text-sm font-bold mb-2">Upload PCAP or CSV File</label>
+          <label className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-indigo-200/50">Upload PCAP or CSV file</label>
           <input 
             type="file"
             ref={fileInputRef}
@@ -93,21 +106,21 @@ export default function ControlPanel(props: ControlPanelProps) {
             }}
           />
           <button 
-            className="w-full bg-slate-900 text-white font-bold text-sm py-2 px-4 rounded hover:bg-[var(--color-gov-saffron)] transition-colors"
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-(--purple) px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-violet-500"
             onClick={() => fileInputRef.current?.click()}
           >
-            Browse Files...
+            <Upload size={14} /> Browse files
           </button>
         </div>
       )}
 
-      <hr className="border-slate-300 mb-4" />
+      <div className="mb-4 border-t border-white/10" />
       
       <div className="mb-6">
-        <h4 className="font-bold text-sm mb-2 uppercase">🎯 Asset Inventory & Criticality</h4>
-        <label className="block text-xs font-semibold mb-1 text-slate-600">Target Monitored Asset IP</label>
+        <h4 className="mb-2 text-[10px] font-bold uppercase tracking-wider text-indigo-200/50">Target asset</h4>
+        <label className="mb-1 block text-xs font-semibold text-indigo-100/60">Monitored asset IP</label>
         <select 
-          className="w-full p-2 border border-slate-300 rounded bg-white text-xs"
+          className="w-full rounded-lg border border-white/10 bg-white/10 p-2 text-xs text-white outline-none"
           value={assetIp}
           onChange={(e) => setAssetIp(e.target.value)}
         >
@@ -117,13 +130,13 @@ export default function ControlPanel(props: ControlPanelProps) {
         </select>
       </div>
 
-      <hr className="border-slate-300 mb-4" />
+      <div className="mb-4 border-t border-white/10" />
       
       <div className="mb-6">
-        <h4 className="font-bold text-sm mb-2 uppercase">Forecast Parameters</h4>
+        <h4 className="mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-indigo-200/50"><Gauge size={14} /> Forecast parameters</h4>
         
         <div className="mb-4">
-          <label className="flex justify-between text-xs font-semibold mb-1 text-slate-600">
+          <label className="mb-1 flex justify-between text-xs font-semibold text-indigo-100/60">
             <span>K-Step Forecast Horizon</span>
             <span>{kSteps}</span>
           </label>
@@ -135,7 +148,7 @@ export default function ControlPanel(props: ControlPanelProps) {
         </div>
 
         <div className="mb-4">
-          <label className="flex justify-between text-xs font-semibold mb-1 text-slate-600">
+          <label className="mb-1 flex justify-between text-xs font-semibold text-indigo-100/60">
             <span>Current Telemetry Window</span>
             <span>{currentWindowId}</span>
           </label>
@@ -147,7 +160,7 @@ export default function ControlPanel(props: ControlPanelProps) {
         </div>
 
         <div className="mb-4">
-          <label className="flex justify-between text-xs font-semibold mb-1 text-slate-600">
+          <label className="mb-1 flex justify-between text-xs font-semibold text-indigo-100/60">
             <span>Alert Threshold</span>
             <span>{riskThreshold.toFixed(2)}</span>
           </label>
@@ -159,6 +172,7 @@ export default function ControlPanel(props: ControlPanelProps) {
         </div>
       </div>
       
-    </div>
+      <div className="mt-auto border-t border-white/10 pt-4 text-[10px] font-medium text-indigo-200/45">Telemetry controls are applied live.</div>
+    </aside>
   );
 }

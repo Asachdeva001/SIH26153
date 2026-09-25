@@ -65,7 +65,7 @@ export default function AuditReport(props: AuditReportProps) {
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+    <div className="dashboard-panel p-6">
       <h2 className="text-xl font-bold mb-2">📄 Security Audit & Threat Forecast Exporter</h2>
       <p className="text-slate-600 mb-6">
         Generate official threat intelligence summary report for SOC incident responders.
@@ -75,7 +75,7 @@ export default function AuditReport(props: AuditReportProps) {
         <button 
           onClick={generateReport}
           disabled={!props.socData}
-          className="bg-slate-900 text-white px-6 py-3 rounded font-bold hover:bg-[var(--color-gov-saffron)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="bg-slate-900 text-white px-6 py-3 rounded font-bold hover:bg-gov-saffron transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {props.socData ? 'Generate JSON Report' : 'Awaiting SOC Data...'}
         </button>
@@ -83,7 +83,7 @@ export default function AuditReport(props: AuditReportProps) {
         <div>
           <button 
             onClick={downloadReport}
-            className="bg-[var(--color-gov-saffron)] text-white px-6 py-3 rounded font-bold hover:bg-slate-900 transition-colors mb-4 flex items-center gap-2"
+            className="bg-gov-saffron text-white px-6 py-3 rounded font-bold hover:bg-slate-900 transition-colors mb-4 flex items-center gap-2"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -93,7 +93,7 @@ export default function AuditReport(props: AuditReportProps) {
             DOWNLOAD OFFICIAL SECURITY AUDIT REPORT (JSON)
           </button>
           
-          <pre className="bg-slate-900 text-green-400 p-4 rounded-md overflow-x-auto text-sm font-mono border border-slate-700 shadow-inner max-h-[500px]">
+          <pre className="bg-slate-900 text-green-400 p-4 rounded-md overflow-x-auto text-sm font-mono border border-slate-700 shadow-inner max-h-125">
             {reportJson}
           </pre>
         </div>

@@ -15,7 +15,7 @@ export default function SocResponse({ socData, assetIp }: SocResponseProps) {
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+    <div className="dashboard-panel p-6">
       <h2 className="text-xl font-bold mb-2">🛡️ SOC Incident Response & Automated Playbooks</h2>
       <p className="text-slate-600 mb-6">
         Combines World Model Forecast Risk, Asset Criticality Weights, and MITRE ATT&CK Severity into an actionable SOC response framework.

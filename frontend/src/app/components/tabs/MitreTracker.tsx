@@ -21,7 +21,7 @@ export default function MitreTracker({ currentStage, futureStage, kSteps }: Mitr
   const futureIdx = STAGES.findIndex(s => s.name === futureStage.name);
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+    <div className="dashboard-panel p-6">
       <h2 className="text-xl font-bold mb-2">MITRE ATT&CK Kill-Chain Progress Matrix</h2>
       <p className="text-slate-600 mb-4">
         Tracks telemetry kill-chain phase evolution and maps predicted upcoming phases from the K-step forward state simulation.

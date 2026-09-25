@@ -21,7 +21,7 @@ export default function NetworkTopology({ rawPackets }: NetworkTopologyProps) {
   }, [rawPackets]);
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+    <div className="dashboard-panel p-6">
       <h2 className="text-xl font-bold mb-6">Host Communication Topology & Packet Telemetry Logs</h2>
       
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
