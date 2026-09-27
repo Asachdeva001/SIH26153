@@ -47,11 +47,19 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Allow CORS for Next.js frontend
-frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:3000")
+# Allow CORS for the local or deployed Next.js frontend. Multiple origins may
+# be supplied as a comma-separated FRONTEND_URL value.
+frontend_origins = [
+    origin.strip()
+    for origin in os.environ.get(
+        "FRONTEND_URL", "http://localhost:3000,http://127.0.0.1:3000"
+    ).split(",")
+    if origin.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[frontend_url],
+    allow_origins=frontend_origins,
+    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

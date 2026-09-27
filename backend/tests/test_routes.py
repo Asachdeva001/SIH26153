@@ -29,6 +29,30 @@ def test_scenario_default():
         assert "windows" in data
         assert "raw_packets" in data
 
+def test_scenario_preflight_from_loopback_origin():
+    with TestClient(app) as client:
+        response = client.options(
+            "/api/scenario?name=APT+Multi-Stage+Campaign&num_windows=20&window_size_sec=10.0",
+            headers={
+                "Origin": "http://127.0.0.1:3000",
+                "Access-Control-Request-Method": "GET",
+                "Access-Control-Request-Headers": "content-type",
+            },
+        )
+        assert response.status_code == 200
+        assert response.headers["access-control-allow-origin"] == "http://127.0.0.1:3000"
+
+        fallback_port_response = client.options(
+            "/api/scenario",
+            headers={
+                "Origin": "http://localhost:3001",
+                "Access-Control-Request-Method": "GET",
+                "Access-Control-Request-Headers": "content-type",
+            },
+        )
+        assert fallback_port_response.status_code == 200
+        assert fallback_port_response.headers["access-control-allow-origin"] == "http://localhost:3001"
+
 def test_mitre_missing_body():
     with TestClient(app) as client:
         response = client.post("/api/mitre")
