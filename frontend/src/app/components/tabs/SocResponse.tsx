@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { SOCResponse } from '@/lib/types';
+import { addAuditLog, AuditAction } from '@/lib/auditLog';
 
 interface SocResponseProps {
   socData: SOCResponse;
@@ -9,9 +10,13 @@ interface SocResponseProps {
 export default function SocResponse({ socData, assetIp }: SocResponseProps) {
   const [actionStatus, setActionStatus] = useState<string | null>(null);
 
-  const handleAction = (msg: string) => {
+  const handleAction = (
+    msg: string,
+    auditEntry: Omit<AuditAction, 'id' | 'timestamp' | 'isoDate'>
+  ) => {
     setActionStatus(msg);
     setTimeout(() => setActionStatus(null), 5000);
+    addAuditLog(auditEntry);
   };
 
   return (
@@ -45,21 +50,63 @@ export default function SocResponse({ socData, assetIp }: SocResponseProps) {
           <h4 className="font-bold text-lg mb-3">SOC Automated Action Simulator</h4>
           <div className="flex flex-col gap-3">
             <button 
-              onClick={() => handleAction(`AUTOMATED ACTION EXECUTED: Isolated host ${assetIp} via EDR integration.`)}
+              onClick={() => handleAction(
+                `AUTOMATED ACTION EXECUTED: Isolated host ${assetIp} via EDR integration.`,
+                {
+                  operator: 'SOC Analyst (You)',
+                  targetIp: assetIp,
+                  subnet: `${assetIp.split('.').slice(0, 3).join('.')}.0/24`,
+                  actionType: 'NETWORK_ISOLATION',
+                  title: `Isolate Host Endpoint — ${socData.asset_name}`,
+                  mitreRef: socData.playbook_actions[0]?.mitre_ref ?? 'T1071 - Application Layer Protocol',
+                  status: 'ACTIVE',
+                  riskBefore: socData.composite_risk_score ?? 0.9,
+                  riskAfter: 0.15,
+                  notes: `EDR-triggered network isolation applied to ${socData.asset_name} (${assetIp}). Asset tier: ${socData.asset_tier}. SLA: ${socData.sla_response}.`
+                }
+              )}
               className="bg-slate-900 text-white font-bold py-2 px-4 rounded hover:bg-[var(--color-gov-saffron)] transition-colors text-sm text-left flex justify-between items-center"
             >
               <span>🔴 Isolate Host Endpoint</span>
               <span className="text-xs bg-white/20 px-2 py-1 rounded">EXECUTE</span>
             </button>
             <button 
-              onClick={() => handleAction(`FIREWALL POLICY DEPLOYED: Applied SMB 445 / RDP 3389 block rule for host ${assetIp}.`)}
+              onClick={() => handleAction(
+                `FIREWALL POLICY DEPLOYED: Applied SMB 445 / RDP 3389 block rule for host ${assetIp}.`,
+                {
+                  operator: 'SOC Analyst (You)',
+                  targetIp: assetIp,
+                  subnet: `${assetIp.split('.').slice(0, 3).join('.')}.0/24`,
+                  actionType: 'FIREWALL_BLOCK',
+                  title: `Subnet Micro-Segmentation — ${socData.asset_name}`,
+                  mitreRef: 'T1021.002 - SMB/Admin Shares',
+                  status: 'ACTIVE',
+                  riskBefore: socData.composite_risk_score ?? 0.75,
+                  riskAfter: 0.25,
+                  notes: `Firewall micro-segmentation applied: SMB 445 and RDP 3389 block rules deployed for ${assetIp}. Asset tier: ${socData.asset_tier}.`
+                }
+              )}
               className="bg-slate-900 text-white font-bold py-2 px-4 rounded hover:bg-[var(--color-gov-saffron)] transition-colors text-sm text-left flex justify-between items-center"
             >
               <span>🔒 Subnet Micro-Segment</span>
               <span className="text-xs bg-white/20 px-2 py-1 rounded">EXECUTE</span>
             </button>
             <button 
-              onClick={() => handleAction(`INCIDENT ACKNOWLEDGED: Dispatched Tier-2 SOC Analyst ticket for ${assetIp}.`)}
+              onClick={() => handleAction(
+                `INCIDENT ACKNOWLEDGED: Dispatched Tier-2 SOC Analyst ticket for ${assetIp}.`,
+                {
+                  operator: 'SOC Analyst (You)',
+                  targetIp: assetIp,
+                  subnet: `${assetIp.split('.').slice(0, 3).join('.')}.0/24`,
+                  actionType: 'ALERT_ACK',
+                  title: `Acknowledge & Assign Analyst — ${socData.asset_name}`,
+                  mitreRef: socData.playbook_actions[0]?.mitre_ref,
+                  status: 'COMPLETED',
+                  riskBefore: socData.composite_risk_score ?? 0.6,
+                  riskAfter: socData.composite_risk_score ?? 0.6,
+                  notes: `Incident for ${socData.asset_name} (${assetIp}) acknowledged and escalated to Tier-2 SOC Analyst. Priority: ${socData.priority_level}. SLA: ${socData.sla_response}.`
+                }
+              )}
               className="bg-slate-900 text-white font-bold py-2 px-4 rounded hover:bg-green-600 transition-colors text-sm text-left flex justify-between items-center"
             >
               <span>✅ Acknowledge & Assign Analyst</span>

@@ -5,7 +5,9 @@ import GovHeader from '../components/layout/GovHeader';
 import ControlPanel from '../components/layout/ControlPanel';
 import TabNav from '../components/ui/TabNav';
 import MetricCard from '../components/cards/MetricCard';
-import Spinner from '../components/ui/Spinner';
+import BootLoader from '../components/ui/BootLoader';
+import AlertDrawer, { AlertItem } from '../components/ui/AlertDrawer';
+import { addAuditLog } from '@/lib/auditLog';
 
 // Tab Components
 import ForecastTimeline from '../components/tabs/ForecastTimeline';
@@ -35,11 +37,59 @@ const TABS = [
   "Audit report"
 ];
 
+const INITIAL_ALERTS: AlertItem[] = [
+  {
+    id: 'alert-1',
+    severity: 'CRITICAL',
+    title: 'Potential C2 Heartbeat & Payload Staging',
+    mitreTechnique: 'Command and Control Beaconing',
+    mitreId: 'T1071.001',
+    targetIp: '198.51.100.44',
+    timestamp: '1m ago',
+    description: 'Periodic beaconing traffic to suspected hostile IP with abnormal payload size variance.',
+    status: 'ACTIVE',
+    suggestedAction: 'Apply egress filter and quarantine gateway node.',
+    targetTab: 'MITRE ATT&CK tracker'
+  },
+  {
+    id: 'alert-2',
+    severity: 'HIGH',
+    title: 'Anomalous Lateral Port Sweeps',
+    mitreTechnique: 'Network Service Scanning',
+    mitreId: 'T1046',
+    targetIp: '10.0.0.15',
+    timestamp: '4m ago',
+    description: 'Rapid high-port sweep directed at Domain Controller / Active Directory instance.',
+    status: 'ACTIVE',
+    suggestedAction: 'Isolate internal subnet 10.0.0.0/24.',
+    targetTab: 'XAI feature attribution'
+  },
+  {
+    id: 'alert-3',
+    severity: 'HIGH',
+    title: 'Privilege Escalation Vector Predicted',
+    mitreTechnique: 'Access Token Manipulation',
+    mitreId: 'T1134',
+    targetIp: '10.0.0.5',
+    timestamp: '8m ago',
+    description: 'K-Step world model forecasts high-confidence token manipulation within next 3 windows.',
+    status: 'ACTIVE',
+    suggestedAction: 'Revoke active Kerberos ticket-granting tokens.',
+    targetTab: 'SOC response'
+  }
+];
+
 export default function DashboardPage() {
   // UI State
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState(TABS[0]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Live Telemetry & Alert State
+  const [isLiveStreaming, setIsLiveStreaming] = useState(false);
+  const [isAlertDrawerOpen, setIsAlertDrawerOpen] = useState(false);
+  const [alerts, setAlerts] = useState<AlertItem[]>(INITIAL_ALERTS);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Control Panel State
   const [dataSource, setDataSource] = useState("Synthetic Demo Scenario");
@@ -144,6 +194,120 @@ export default function DashboardPage() {
     runModels();
   }, [validCurrentId, kSteps, riskThreshold, assetIp, currentRow]); // dependencies don't include windows entirely to prevent loop
 
+  // Toast Helper
+  const showToast = useCallback((msg: string) => {
+    setToastMessage(msg);
+    const timer = setTimeout(() => {
+      setToastMessage(prev => (prev === msg ? null : prev));
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Live Stream auto-step timer
+  useEffect(() => {
+    if (!isLiveStreaming) return;
+
+    const timer = setInterval(() => {
+      setCurrentWindowId((prev) => {
+        const next = prev + 1;
+        if (next > maxWindowId) {
+          return 3;
+        }
+        return next;
+      });
+    }, 3500);
+
+    return () => clearInterval(timer);
+  }, [isLiveStreaming, maxWindowId]);
+
+  // Dynamic alert trigger when risk exceeds threshold
+  useEffect(() => {
+    if (peakForecastRisk >= riskThreshold && mitreCurrent && mitreCurrent.name !== "Benign Activity") {
+      const alertId = `dyn-${validCurrentId}-${mitreCurrent.id}`;
+      setAlerts(prev => {
+        if (prev.some(a => a.id === alertId)) return prev;
+        const newAlert: AlertItem = {
+          id: alertId,
+          severity: peakForecastRisk > 0.75 ? 'CRITICAL' : 'HIGH',
+          title: `Projected Phase: ${mitreCurrent.name}`,
+          mitreTechnique: mitreCurrent.name,
+          mitreId: mitreCurrent.id,
+          targetIp: assetIp,
+          timestamp: 'Just now',
+          description: `Telemetry Window T${validCurrentId} detected ${mitreCurrent.name} with ${(peakForecastRisk * 100).toFixed(0)}% projected peak risk.`,
+          status: 'ACTIVE',
+          suggestedAction: `Engage ${socPriority?.playbook_actions?.[0]?.action || 'containment playbook'} on ${assetIp}.`,
+          targetTab: 'MITRE ATT&CK tracker'
+        };
+        return [newAlert, ...prev.slice(0, 7)];
+      });
+    }
+  }, [validCurrentId, peakForecastRisk, riskThreshold, mitreCurrent, assetIp, socPriority]);
+
+  const handleToggleLiveStream = () => {
+    setIsLiveStreaming(prev => {
+      const next = !prev;
+      showToast(next ? "Live telemetry stream started. Stepping windows..." : "Live telemetry stream paused.");
+      return next;
+    });
+  };
+
+  const handleInvestigateAlert = (alert: AlertItem) => {
+    setActiveTab(alert.targetTab);
+    setIsAlertDrawerOpen(false);
+    showToast(`Investigating: ${alert.title} in ${alert.targetTab}`);
+  };
+
+  const handleIsolateHost = (ip: string, alertId: string) => {
+    const alert = alerts.find(a => a.id === alertId);
+    setAlerts(prev => prev.map(a => a.id === alertId ? { ...a, status: 'ISOLATED' } : a));
+    
+    // Automatically record into the audit log!
+    const subnet = ip.startsWith('10.0.0') 
+      ? '10.0.0.0/24 (Corp Core)' 
+      : ip.startsWith('198.51') 
+      ? '198.51.100.0/24 (DMZ Perimeter)' 
+      : '192.168.1.0/24 (Endpoints)';
+
+    addAuditLog({
+      operator: 'Analyst (JD)',
+      targetIp: ip,
+      subnet,
+      actionType: 'NETWORK_ISOLATION',
+      title: `Emergency Isolation of ${ip}`,
+      mitreRef: alert ? `${alert.mitreId} - ${alert.mitreTechnique}` : 'T1021 - Lateral Movement',
+      status: 'ACTIVE',
+      riskBefore: peakForecastRisk || 0.82,
+      riskAfter: 0.12,
+      notes: `Host isolated from subnet via SDN firewall rule. Port egress blocked.`
+    });
+
+    showToast(`Target host ${ip} isolated. Recorded to Action History.`);
+  };
+
+  const handleDismissAlert = (id: string) => {
+    setAlerts(prev => prev.filter(a => a.id !== id));
+  };
+
+  const handleClearAllAlerts = () => {
+    alerts.forEach(a => {
+      addAuditLog({
+        operator: 'Analyst (JD)',
+        targetIp: a.targetIp,
+        subnet: a.targetIp.startsWith('10.0.0') ? '10.0.0.0/24 (Corp Core)' : '198.51.100.0/24 (DMZ Perimeter)',
+        actionType: 'ALERT_ACK',
+        title: `Acknowledged Alert: ${a.title}`,
+        mitreRef: `${a.mitreId} - ${a.mitreTechnique}`,
+        status: 'COMPLETED',
+        riskBefore: peakForecastRisk || 0.60,
+        riskAfter: peakForecastRisk || 0.60,
+        notes: `Alert reviewed and acknowledged by operator.`
+      });
+    });
+    setAlerts([]);
+    showToast("All incident alerts acknowledged and recorded in audit trail.");
+  };
+
   const handleRunXai = async () => {
     setIsXaiLoading(true);
     try {
@@ -158,16 +322,11 @@ export default function DashboardPage() {
   };
 
   if (isLoading && windows.length === 0) {
-    return (
-      <div className="h-full w-full flex flex-col items-center justify-center bg-[var(--color-gov-bg)]">
-        <Spinner />
-        <p className="mt-4 text-slate-500 font-bold tracking-widest uppercase">Initializing Telemetry Subsystem...</p>
-      </div>
-    );
+    return <BootLoader />;
   }
 
   return (
-    <div className="flex h-screen w-full bg-[var(--color-gov-bg)]">
+    <div className="flex h-screen w-full bg-gov-blue p-2 pr-2 gap-2 overflow-hidden transition-colors duration-300">
       {/* Sidebar */}
       <ControlPanel 
         isOpen={isSidebarOpen}
@@ -182,8 +341,15 @@ export default function DashboardPage() {
       />
 
       {/* Main Content */}
-      <div className="no-scrollbar flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
-        <GovHeader onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
+      <div className="no-scrollbar flex-1 overflow-y-auto bg-[var(--color-gov-bg)] rounded-[2rem] shadow-2xl border border-white/5 px-4 py-4 sm:px-6 sm:py-6 lg:px-8 relative transition-all duration-300">
+        <GovHeader 
+          onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} 
+          isLiveStreaming={isLiveStreaming}
+          onToggleLiveStream={handleToggleLiveStream}
+          peakRiskScore={peakForecastRisk}
+          alertCount={alerts.filter(a => a.status === 'ACTIVE').length}
+          onOpenAlerts={() => setIsAlertDrawerOpen(true)}
+        />
 
         {/* Executive Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
@@ -269,6 +435,26 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {/* Real-time Alert Slide-Over Drawer */}
+      <AlertDrawer 
+        isOpen={isAlertDrawerOpen}
+        onClose={() => setIsAlertDrawerOpen(false)}
+        alerts={alerts}
+        onInvestigate={handleInvestigateAlert}
+        onIsolateHost={handleIsolateHost}
+        onDismissAlert={handleDismissAlert}
+        onClearAll={handleClearAllAlerts}
+      />
+
+      {/* Floating SOC Action Toast */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-2xl bg-slate-900/95 px-5 py-3 text-white shadow-2xl backdrop-blur-md border border-white/10 transition-all duration-300">
+          <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span className="text-xs font-semibold tracking-wide font-roboto">{toastMessage}</span>
+        </div>
+      )}
     </div>
   );
 }
+

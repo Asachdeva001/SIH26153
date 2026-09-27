@@ -76,6 +76,7 @@ export interface PlaybookAction {
     action: string;
     type: string;
     status: string;
+    mitre_ref?: string;
 }
 
 export interface SOCResponse {
@@ -89,6 +90,7 @@ export interface SOCResponse {
     asset_weight: number;
     stage_name: string;
     playbook_actions: PlaybookAction[];
+    composite_risk_score?: number;
 }
 
 export interface BenchmarkMetrics {

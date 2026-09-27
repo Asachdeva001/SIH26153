@@ -1,23 +1,37 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Tiro+Devanagari+Hindi:ital@0;1&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: 'Google Sans', 'Roboto', 'Segoe UI', sans-serif;
-  --color-gov-blue: #202124;
-  --color-gov-blue-light: #3c4043;
-  --color-gov-saffron: #1a73e8;
-  --color-gov-bg: #f8fafd;
-  --color-gov-panel: #f1f3f4;
-  --color-gov-border: #dadce0;
+  --font-sans: 'Montserrat', 'Google Sans', 'Roboto', 'Segoe UI', sans-serif;
+  --font-devanagari: 'Tiro Devanagari Hindi', serif;
+
+  /* Indian Government Theme */
+  --color-gov-blue: #0A1628;
+  /* Deep Navy - sidebar bg */
+  --color-gov-blue-light: #1a2a4a;
+  /* Navy mid */
+  --color-gov-saffron: #FF9933;
+  /* National saffron */
+  --color-gov-green: #138808;
+  /* India green */
+  --color-gov-ashoka: #000080;
+  /* Ashoka Chakra blue */
+  --color-gov-bg: #F5F6FA;
+  /* Content area bg */
+  --color-gov-panel: #FFFFFF;
+  --color-gov-border: #E2E4EC;
 }
 
 @layer base {
   :root {
-    --ink: #202124;
-    --muted: #70757a;
-    --purple: #1a73e8;
-    --purple-soft: #e8f0fe;
-    --green: #37b979;
+    --ink: #1a1a2e;
+    --muted: #6B7280;
+    --saffron: #FF9933;
+    --saffron-soft: #FFF3E0;
+    --india-green: #138808;
+    --green-soft: #E8F5E9;
     --rose: #ef6d84;
+    --ashoka-blue: #000080;
   }
 
   * {
@@ -36,29 +50,58 @@
   }
 }
 
+/* Tricolor top bar */
+.tricolor-bar {
+  height: 4px;
+  background: linear-gradient(to right,
+      #FF9933 0%,
+      #FF9933 25%,
+      #FFFFFF 50%,
+      #138808 75%,
+      #138808 100%);
+}
+
+/* Tricolor ribbon (diagonal) for cards */
+.tricolor-ribbon {
+  background: linear-gradient(135deg,
+      #FF9933 0%,
+      #FF9933 33%,
+      #FFFFFF 33%,
+      #FFFFFF 66%,
+      #138808 66%,
+      #138808 100%);
+}
+
 .gov-header {
   background: #ffffff;
   border: 1px solid var(--color-gov-border);
-  box-shadow: 0 2px 8px rgba(60, 64, 67, 0.12);
+  box-shadow: 0 2px 8px rgba(10, 22, 40, 0.10);
 }
 
 .gov-card {
   background: #ffffff;
   border: 1px solid var(--color-gov-border);
-  border-radius: 8px;
+  border-radius: 10px;
   transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .gov-card:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(60, 64, 67, 0.14);
+  box-shadow: 0 4px 14px rgba(10, 22, 40, 0.12);
 }
 
 .dashboard-panel {
   background: #ffffff;
   border: 1px solid var(--color-gov-border);
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(60, 64, 67, 0.08);
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(10, 22, 40, 0.07);
+}
+
+/* Active tab accent uses saffron */
+.tab-active-saffron {
+  border-bottom: 3px solid #FF9933;
+  color: #FF9933;
+  font-weight: 700;
 }
 
 .no-scrollbar {
@@ -71,5 +114,47 @@
 }
 
 input[type='range'] {
-  accent-color: var(--purple);
+  accent-color: var(--saffron);
+}
+
+/* Ashoka Chakra spin animation for watermarks */
+@keyframes chakra-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.chakra-spin {
+  animation: chakra-spin 12s linear infinite;
+}
+
+/* Subtle scan animation for boot loader */
+@keyframes boot-scan {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(267%);
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.boot-line {
+  animation: fade-in-up 0.4s ease forwards;
 }
