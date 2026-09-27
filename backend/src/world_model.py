@@ -3,7 +3,10 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 import pandas as pd
+import logging
 from typing import List, Dict, Tuple, Optional
+
+logger = logging.getLogger(__name__)
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import f1_score, precision_score, recall_score, confusion_matrix
@@ -86,7 +89,6 @@ class WorldModelForecaster:
             return
 
         from torch.utils.data import DataLoader, TensorDataset
-        from tqdm import tqdm
 
         seq_tensor = torch.tensor(np.array(sequences), dtype=torch.float32)
         st_tensor = torch.tensor(np.array(target_states), dtype=torch.float32)
@@ -101,28 +103,31 @@ class WorldModelForecaster:
         criterion_risk = nn.BCELoss()
 
         self.model.train()
-        print(f"Starting training on {len(sequences)} sequences with batch size {batch_size}...")
+        logger.info("Starting training on %d sequences with batch size %d...", len(sequences), batch_size)
         loss_history = []
         for ep in range(epochs):
             total_loss = 0.0
-            with tqdm(dataloader, desc=f"Epoch {ep+1}/{epochs}", unit="batch") as pbar:
-                for batch_seq, batch_st, batch_rk in pbar:
-                    batch_seq = batch_seq.to(self.device)
-                    batch_st = batch_st.to(self.device)
-                    batch_rk = batch_rk.to(self.device)
-                    
-                    optimizer.zero_grad()
-                    pred_st, pred_rk = self.model(batch_seq)
+            for batch_seq, batch_st, batch_rk in dataloader:
+                batch_seq = batch_seq.to(self.device)
+                batch_st = batch_st.to(self.device)
+                batch_rk = batch_rk.to(self.device)
+                
+                optimizer.zero_grad()
+                pred_st, pred_rk = self.model(batch_seq)
 
-                    loss_st = criterion_state(pred_st, batch_st)
-                    loss_rk = criterion_risk(pred_rk, batch_rk)
-                    loss = loss_st + 2.0 * loss_rk
+                loss_st = criterion_state(pred_st, batch_st)
+                loss_rk = criterion_risk(pred_rk, batch_rk)
+                loss = loss_st + 2.0 * loss_rk
 
-                    loss.backward()
-                    optimizer.step()
-                    total_loss += loss.item()
-                    pbar.set_postfix({"loss": f"{loss.item():.4f}"})
-            loss_history.append(total_loss / len(dataloader))
+                loss.backward()
+                optimizer.step()
+                total_loss += loss.item()
+
+            avg_loss = total_loss / len(dataloader)
+            loss_history.append(avg_loss)
+            
+            if (ep + 1) % 5 == 0 or ep == epochs - 1:
+                logger.info("Epoch %d/%d - Loss: %.4f", ep + 1, epochs, avg_loss)
 
         self.model.eval()
         self.is_fitted = True
