@@ -140,7 +140,7 @@ def test_explainer():
     assert isinstance(total_shap, float)
 
 def test_no_leakage_chronological_split():
-    from scripts.train import grouped_chronological_split
+    from backend.scripts.train import grouped_chronological_split
     
     gen = SyntheticAttackGenerator(seed=42)
     df_list = []

@@ -1,8 +1,13 @@
 import os
 import time
+import logging
 import pandas as pd
 import numpy as np
 from typing import List, Dict, Tuple, Optional, Union, Any
+
+logger = logging.getLogger(__name__)
+
+DEFAULT_UNKNOWN_RISK = 0.5
 
 # Feature column definitions for state vectors S_t
 LABEL_TO_RISK = {
@@ -85,7 +90,7 @@ class TrafficParser:
                 df['timestamp_dt'] = pd.to_datetime(df[timestamp_col], errors='coerce')
                 # Fill NaNs if any date parsing failed
                 if df['timestamp_dt'].isna().any():
-                    df['timestamp_dt'] = df['timestamp_dt'].fillna(method='ffill').fillna(pd.Timestamp.now())
+                    df['timestamp_dt'] = df['timestamp_dt'].ffill().fillna(pd.Timestamp.now())
                 df['relative_sec'] = (df['timestamp_dt'] - df['timestamp_dt'].min()).dt.total_seconds()
             except Exception:
                 df['relative_sec'] = np.linspace(0, len(df) * 0.5, len(df))
@@ -229,8 +234,8 @@ class TrafficParser:
         total_windows = int(np.ceil(max_time / self.window_size_sec)) + 1
         total_windows = max(total_windows, df['window_idx'].max() + 1)
 
-        from tqdm import tqdm
-        for w_idx in tqdm(range(total_windows), desc="Aggregating Windows"):
+        logger.info("Aggregating %d time windows...", total_windows)
+        for w_idx in range(total_windows):
             start_t = w_idx * self.window_size_sec
             end_t = (w_idx + 1) * self.window_size_sec
 
@@ -288,10 +293,14 @@ class TrafficParser:
                         lbl_str = str(lbl).strip()
                         if not lbl_str:
                             continue
-                        # If label is not known, raise error
                         if lbl_str not in LABEL_TO_RISK:
-                            raise KeyError(f"Unknown attack label '{lbl_str}' encountered. Add to LABEL_TO_RISK.")
-                        target_risk_score = max(target_risk_score, LABEL_TO_RISK[lbl_str])
+                            logger.warning(
+                                "Unknown attack label '%s' encountered in window %d. "
+                                "Defaulting to risk score %.1f. Add to LABEL_TO_RISK for precise mapping.",
+                                lbl_str, w_idx, DEFAULT_UNKNOWN_RISK
+                            )
+                        risk = LABEL_TO_RISK.get(lbl_str, DEFAULT_UNKNOWN_RISK)
+                        target_risk_score = max(target_risk_score, risk)
 
                 rec = {
                     'window_id': w_idx,

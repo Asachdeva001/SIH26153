@@ -6,6 +6,7 @@ import glob
 import pandas as pd
 import numpy as np
 import torch
+import logging
 from datetime import datetime
 
 import sys
@@ -15,6 +16,12 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 from backend.src.synthetic_generator import SyntheticAttackGenerator
 from backend.src.world_model import WorldModelForecaster, BaselineClassifier, BenchmarkEvaluator
 from backend.src.parser import TrafficParser, FEATURE_COLUMNS
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 def grouped_chronological_split(df: pd.DataFrame, group_col: str, test_ratio: float = 0.2):
     """Splits dataframe chronologically. If multiple files (campaigns) exist, group by them.
@@ -62,27 +69,27 @@ def main():
     is_synthetic = False
 
     if csv_files:
-        print(f"Found real dataset in {data_dir}. Loading...")
+        logger.info("Found real dataset in %s. Loading...", data_dir)
         parser = TrafficParser(window_size_sec=10.0)
         df_list = []
         for file in csv_files[:5]:  # Process up to 5 files
-            print(f"Parsing {file}...")
+            logger.info("Parsing %s...", file)
             try:
                 df_parsed = parser.parse_csv(file)
                 df_win = parser.create_time_windows(df_parsed)
                 df_win['attack_campaign'] = os.path.basename(file)
                 df_list.append(df_win)
             except Exception as e:
-                print(f"Failed to parse {file}: {e}")
+                logger.error("Failed to parse %s: %s", file, e)
         df_win = pd.concat(df_list, ignore_index=True)
         report_file = "backend/models/benchmark_report.json"
         dataset_name = "CSE-CIC-IDS2018"
     else:
-        print("*" * 60)
-        print("WARNING: Real CIC-IDS-2018 dataset not found.")
-        print(f"Path searched: {data_dir}")
-        print("DEV/CI MODE: Generating synthetic multi-campaign data.")
-        print("*" * 60)
+        logger.warning("*" * 60)
+        logger.warning("WARNING: Real CIC-IDS-2018 dataset not found.")
+        logger.warning("Path searched: %s", data_dir)
+        logger.warning("DEV/CI MODE: Generating synthetic multi-campaign data.")
+        logger.warning("*" * 60)
         is_synthetic = True
         report_file = "backend/models/benchmark_report_synthetic.json"
         dataset_name = "Synthetic Dev/CI Fallback"
@@ -106,7 +113,7 @@ def main():
 
     # 1. SPLIT (Step 2)
     train_df, test_df, train_camps, test_camps = grouped_chronological_split(df_win, group_col='attack_campaign', test_ratio=0.3)
-    print(f"Train windows: {len(train_df)}, Test windows: {len(test_df)}")
+    logger.info("Train windows: %d, Test windows: %d", len(train_df), len(test_df))
 
     os.makedirs("models", exist_ok=True)
 
@@ -120,7 +127,7 @@ def main():
     joblib.dump(scaler_data, "backend/models/scaler.pkl")
 
     # 3. JOINT TRAINING (Step 4)
-    print("Training WorldModelForecaster...")
+    logger.info("Training WorldModelForecaster...")
     forecaster = WorldModelForecaster(hidden_dim=hidden_dim, history_len=history_len)
     
     # Pre-inject scaler into WorldModel so it uses the shared one
@@ -128,7 +135,7 @@ def main():
     forecaster.scale_ = scale_
     loss_curve = forecaster.fit(train_df, epochs=epochs, lr=lr)
 
-    print("Training BaselineClassifier...")
+    logger.info("Training BaselineClassifier...")
     base = BaselineClassifier()
     # Pre-inject scaler into Baseline (even if it doesn't strictly use it yet, we want parity)
     base.mean_ = mean_
@@ -144,7 +151,7 @@ def main():
         joblib.dump(base, "backend/models/baseline_lr_v1.pkl")
 
     # 5. BENCHMARK ON HELD-OUT TEST (Step 4)
-    print("Evaluating K-horizons performance...")
+    logger.info("Evaluating K-horizons performance...")
     metrics_by_horizon = BenchmarkEvaluator.evaluate_k_horizons(
         forecaster, base, test_df, max_k=5, threshold=0.50
     )
@@ -163,7 +170,7 @@ def main():
     with open(report_file, "w") as f:
         json.dump(report, f, indent=4)
         
-    print(f"Training complete. Models and {report_file} saved.")
+    logger.info("Training complete. Models and %s saved.", report_file)
 
 if __name__ == "__main__":
     main()

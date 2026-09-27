@@ -1,10 +1,12 @@
-FROM oven/bun:1.0 as builder
+FROM oven/bun:latest as builder
 WORKDIR /app
 
-COPY frontend/package.json frontend/bun.lockb* ./
+COPY frontend/package.json frontend/bun.lock* ./
 RUN bun install
 
 COPY frontend/ .
+ARG NEXT_PUBLIC_API_URL=http://localhost:8000/api
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 RUN bun run build
 
 FROM node:20-slim

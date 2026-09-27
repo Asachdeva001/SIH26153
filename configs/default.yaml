@@ -1,0 +1,17 @@
+training:
+  seed: 42
+  history_len: 4
+  hidden_dim: 64
+  epochs: 35
+  learning_rate: 0.005
+  data_dir: "data/raw/cse-cic-ids2018/"
+
+model:
+  world_model_path: "backend/models/world_model_v1.pth"
+  baseline_path: "backend/models/baseline_lr_v1.pkl"
+  scaler_path: "backend/models/scaler.pkl"
+
+server:
+  host: "0.0.0.0"
+  port: 8000
+  log_level: "info"
