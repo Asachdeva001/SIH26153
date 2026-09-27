@@ -30,7 +30,7 @@ export default function ForecastTimeline({
   const isWarning = peakForecastRisk >= riskThreshold;
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+    <div className="dashboard-panel p-6">
       <h2 className="text-xl font-bold mb-2">Infiltration Risk Forecast Trajectory</h2>
       <p className="text-slate-600 mb-6">
         Visualizes historical telemetry risk score up to current window T_now along with the K-step forward World Model trajectory.

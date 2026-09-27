@@ -16,7 +16,7 @@ export default function KStepSimulator({ forecastData }: KStepSimulatorProps) {
   }));
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+    <div className="dashboard-panel p-6">
       <h2 className="text-xl font-bold mb-2">Autoregressive K-Step State Simulation</h2>
       <p className="text-slate-600 mb-6">
         Displays continuous telemetry state vectors projected K steps forward by the World Model neural decoder.

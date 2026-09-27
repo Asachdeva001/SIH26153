@@ -25,14 +25,14 @@ import {
 } from '@/lib/types';
 
 const TABS = [
-  "📈 Forecast Timeline",
-  "🎯 MITRE ATT&CK Tracker",
-  "🔬 XAI Feature Attribution",
-  "🔮 K-Step Simulator",
-  "🛡️ SOC Response",
-  "⚡ Model Benchmarking",
-  "🌐 Network Topology",
-  "📄 Audit Report"
+  "Forecast timeline",
+  "MITRE ATT&CK tracker",
+  "XAI feature attribution",
+  "K-step simulator",
+  "SOC response",
+  "Model benchmarking",
+  "Network topology",
+  "Audit report"
 ];
 
 export default function DashboardPage() {
@@ -182,7 +182,7 @@ export default function DashboardPage() {
       />
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-y-auto px-8 py-6">
+      <div className="no-scrollbar flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
         <GovHeader onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
 
         {/* Executive Metrics */}

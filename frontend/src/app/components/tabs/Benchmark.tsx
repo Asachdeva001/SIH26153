@@ -33,7 +33,7 @@ export default function Benchmark({ benchmarkData, isLoading }: BenchmarkProps) 
   ];
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+    <div className="dashboard-panel p-6">
       <h2 className="text-xl font-bold mb-2">Quantitative Performance Benchmarking</h2>
       <p className="text-slate-600 mb-6">
         Quantifies performance gains of World Model Transition Forecasting against static Logistic Regression classifiers.

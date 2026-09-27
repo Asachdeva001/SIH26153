@@ -10,7 +10,7 @@ interface XaiAttributionProps {
 
 export default function XaiAttribution({ xaiData, isLoading, onRunAnalysis }: XaiAttributionProps) {
   return (
-    <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+    <div className="dashboard-panel p-6">
       <div className="flex justify-between items-start mb-6">
         <div>
           <h2 className="text-xl font-bold mb-2">Explainable AI (XAI) Telemetry Feature Attribution</h2>

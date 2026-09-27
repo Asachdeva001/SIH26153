@@ -1,37 +1,26 @@
 import React from 'react';
+import { Menu, Search } from 'lucide-react';
 
 export default function GovHeader({ onToggleSidebar }: { onToggleSidebar: () => void }) {
   return (
-    <div className="gov-header px-7 py-5 mb-6 flex justify-between items-center rounded-md shadow-[0_4px_12px_rgba(15,23,42,0.1)]">
-      <div className="flex items-center gap-4">
-        <button 
-          onClick={onToggleSidebar}
-          className="bg-slate-800 text-white border-2 border-[var(--color-gov-saffron)] px-3.5 py-2 rounded-md font-extrabold text-sm flex items-center gap-2 shadow-md transition-colors hover:bg-[var(--color-gov-saffron)] cursor-pointer"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-            <line x1="9" y1="3" x2="9" y2="21"></line>
-            <path d="M13 15l3-3-3-3"></path>
-          </svg>
-          <span>SIDEBAR</span>
+    <header className="gov-header mb-7 flex items-center justify-between gap-4 rounded-lg px-5 py-3">
+      <div className="flex min-w-0 items-center gap-4">
+        <button onClick={onToggleSidebar} aria-label="Toggle sidebar" className="rounded-md p-2 text-slate-500 transition hover:bg-[var(--purple-soft)] hover:text-[var(--purple)]">
+          <Menu size={20} />
         </button>
-        <div>
-          <div className="text-white text-2xl font-extrabold tracking-wide m-0">
-            NATIONAL CYBER DEFENSE <span className="text-[var(--color-gov-saffron)]">OPERATIONS</span>
-          </div>
-          <div className="text-slate-300 text-sm tracking-wide mt-1 font-medium">
-            GOVERNMENT OF INDIA • PREDICTIVE CYBER DEFENSE & ATTACK FORECASTING PORTAL (SIH26153)
-          </div>
+        <div className="hidden min-w-0 sm:block">
+          <p className="truncate text-xs font-medium text-slate-500">Predictive cyber defense</p>
+          <h1 className="truncate text-lg font-medium tracking-tight text-[var(--ink)]">Operations overview</h1>
+        </div>
+        <div className="flex w-full max-w-xs items-center gap-2 rounded-xl bg-[#f7f7fb] px-3 py-2 text-sm text-slate-400 sm:ml-4">
+          <Search size={17} />
+          <span>Search anything...</span>
+          <span className="ml-auto hidden rounded bg-white px-1.5 py-0.5 text-[10px] font-bold text-slate-400 shadow-sm md:inline">⌘ K</span>
         </div>
       </div>
       <div className="flex items-center gap-3">
-        <span className="bg-green-500/15 border border-green-500 text-green-400 px-3 py-1.5 text-xs font-extrabold rounded-md tracking-wide">
-          🟢 LIVE THREAT STREAM
-        </span>
-        <div className="border border-white/40 px-4 py-2 text-xs font-extrabold tracking-widest text-white bg-slate-800 uppercase rounded">
-          OFFICIAL USE ONLY
-        </div>
+        <div className="hidden items-center gap-2 rounded-full bg-[#eaf9f1] px-3 py-1.5 text-xs font-medium text-[#24935e] sm:flex"><span className="h-2 w-2 rounded-full bg-[var(--green)]" /> Live telemetry</div>
       </div>
-    </div>
+    </header>
   );
 }
