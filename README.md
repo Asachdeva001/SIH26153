@@ -2,7 +2,7 @@
 
 An explainable cyber-defense prototype that forecasts how network risk may evolve over time and helps a SOC analyst decide what to investigate first.
 
-> **For GitHub visitors:** start with [Quick Start](#quick-start) to launch the complete website. After it opens, follow [How to Use the Website](#how-to-use-the-website).
+> **New here?** Use [Quick Start](#quick-start) to launch the complete website, then follow [How to Use the Website](#how-to-use-the-website).
 
 The system connects four steps in one workflow:
 
@@ -29,20 +29,32 @@ Traditional detection tells a defender what looks suspicious **now**. This proje
 
 ## Quick Start
 
+The Docker workflow is the recommended way to run the full application because it starts the FastAPI backend and Next.js frontend with matching dependencies.
+
 ### Prerequisites
 
-- Docker Desktop with Docker Compose.
-- At least 8 GB RAM recommended for the complete stack.
-- Ports `3000` and `8000` available.
+- Git
+- Docker Desktop with Docker Compose v2
+- At least 8 GB RAM recommended for the complete stack
+- Ports `3000` and `8000` available
+
+Verify Docker before continuing:
+
+```bash
+docker --version
+docker compose version
+```
 
 ### 1. Clone the repository
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/<your-account>/<your-repository>.git
 cd SIH26
 ```
 
-### 2. Start the complete website
+Replace the clone URL with the repository URL shown on GitHub. If you downloaded a ZIP instead, extract it and open a terminal in the extracted `SIH26` folder.
+
+### 2. Build and start the complete website
 
 From the repository root:
 
@@ -50,7 +62,7 @@ From the repository root:
 docker compose up --build
 ```
 
-The first build downloads the backend ML dependencies and builds the Next.js frontend. Wait until both services are running. Keep this terminal open while using the website.
+The first build downloads the backend ML dependencies and builds the Next.js frontend, so it can take several minutes. Keep this terminal open while using the website. For later runs, use `docker compose up` unless source or dependency files changed.
 
 ### 3. Open the services
 
@@ -64,7 +76,7 @@ The health check should return a response containing:
 {"status":"ok","model_loaded":true}
 ```
 
-If the dashboard loads but shows a backend connection error, wait for the backend health check to return `model_loaded: true`, then refresh http://localhost:3000.
+If the dashboard loads but shows a backend connection error, wait for the health check to return `model_loaded: true`, then refresh http://localhost:3000.
 
 ### Stop the application
 
@@ -141,6 +153,8 @@ Choose the upload option and provide a supported `.csv` or `.pcap` file. The bac
 
 For the most reliable first demonstration, use the built-in synthetic scenario before testing a custom file. Uploaded files must contain traffic fields that the parser can interpret; missing packet-level fields may use parser defaults.
 
+PCAP files normally do not contain attack labels. For those files, the dashboard uses a bounded telemetry-based risk estimate from signals such as SYN/RST ratios, high ports, port scanning and traffic volume. A displayed `0%` means an empty or low-signal time window, not upload progress. Labeled CSV files use their label values when available.
+
 ### Investigating an alert
 
 1. Open the alert drawer from the dashboard header.
@@ -208,6 +222,7 @@ The complete request and response schemas are available through Swagger at http:
 cd backend
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 cd ..
 python -m uvicorn backend.main:app --reload --port 8000
@@ -223,6 +238,7 @@ backend\.venv\Scripts\activate
 
 ```bash
 source backend/.venv/Scripts/activate
+python -m pip install -r backend/requirements.txt
 python -m uvicorn backend.main:app --reload --port 8000
 ```
 
@@ -251,6 +267,8 @@ $env:NEXT_PUBLIC_API_URL="http://localhost:8000/api"
 bun run dev
 ```
 
+If Bun is not installed, install it from https://bun.sh/docs/installation, then reopen the terminal. The repository pins Bun through `frontend/package.json`; using the same package manager avoids lockfile differences.
+
 ### Environment variables
 
 | Variable | Default | Used by |
@@ -274,7 +292,13 @@ docker compose exec backend pytest -q
 With the local virtual environment:
 
 ```bash
-python -m pytest backend/tests/ -q
+PYTHONPATH=. python -m pytest backend/tests/ -q
+```
+
+From Windows PowerShell, use the equivalent command:
+
+```powershell
+$env:PYTHONPATH="."; python -m pytest backend/tests/ -q
 ```
 
 ### Frontend checks
@@ -293,7 +317,7 @@ Install and start Docker Desktop, then run `docker compose version` before start
 
 ### Port 3000 or 8000 is already in use
 
-Stop the process using the port, or change the published ports in `docker-compose.yml`. If the frontend port changes, update `FRONTEND_URL` and open the new frontend URL.
+Stop the process using the port, or change the published ports in `docker-compose.yml`. If the frontend port changes, update `FRONTEND_URL`, `NEXT_PUBLIC_API_URL` and the URL opened in your browser.
 
 ### Dashboard says “Check backend connection”
 
@@ -334,6 +358,14 @@ bun run build
 
 On Windows, remove `node_modules` from File Explorer or use PowerShell `Remove-Item -Recurse -Force node_modules`.
 
+### Upload returns an error or stays empty
+
+- Confirm the file extension is `.csv`, `.pcap` or `.pcapng`.
+- Confirm the backend is ready at http://localhost:8000/healthz.
+- Check the backend logs with `docker compose logs backend`.
+- A capture with no packets or no usable timestamps may produce no time windows.
+- PCAP risk is inferred from packet behavior; it is not a ground-truth attack label.
+
 ## Project Structure
 
 ```text
@@ -367,13 +399,11 @@ The following points are intentionally explicit for evaluation:
 
 ## Documentation
 
-- [Architecture document](SIH26_Architecture_Document.docx)
-- [Complete presentation blueprint](SIH26_PRESENTATION_BLUEPRINT.md)
-- [Balanced Mermaid architecture](ARCHITECTURE_FLOW_MERMAID_BALANCED.md)
-- [Judge-ready Mermaid diagrams](ARCHITECTURE_FLOW_MERMAID_JUDGE.md)
-- [Project workflow Mermaid diagram](SIH26_PROJECT_WORKFLOW_MERMAID.md)
 - [Backend audit](README_BACKEND_AUDIT.md)
 - [Audit documentation](docs/audit/00_EXECUTIVE_SUMMARY.md)
+- [Implementation plan](docs/plan/00_IMPLEMENTATION_PLAN.md)
+- [Developer onboarding](docs/audit/11_DEVELOPER_ONBOARDING.md)
+- [Production readiness](docs/audit/08_PRODUCTION_READINESS.md)
 
 ## Judge Takeaway
 
