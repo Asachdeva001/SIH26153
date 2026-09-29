@@ -3,6 +3,8 @@
 
 @theme {
   --font-sans: 'Montserrat', 'Google Sans', 'Roboto', 'Segoe UI', sans-serif;
+  --font-inter: 'Inter', 'Segoe UI', sans-serif;
+  --font-roboto: 'Roboto', 'Segoe UI', sans-serif;
   --font-devanagari: 'Tiro Devanagari Hindi', serif;
 
   /* Indian Government Theme */

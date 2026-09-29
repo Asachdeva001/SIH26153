@@ -1,17 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Roboto } from "next/font/google";
 import "./globals.css";
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-});
-
-const roboto = Roboto({
-  weight: ["300", "400", "500", "700"],
-  variable: "--font-roboto",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "Predictive Cyber Defense & SOC Portal",
@@ -25,7 +13,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${roboto.variable} font-sans antialiased h-screen overflow-hidden flex flex-col`}>
+      <body className="font-sans antialiased h-screen overflow-hidden flex flex-col">
         {children}
       </body>
     </html>

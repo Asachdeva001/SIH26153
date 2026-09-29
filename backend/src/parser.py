@@ -323,6 +323,15 @@ class TrafficParser:
                             )
                         risk = LABEL_TO_RISK.get(lbl_str, DEFAULT_UNKNOWN_RISK)
                         target_risk_score = max(target_risk_score, risk)
+                else:
+                    target_risk_score = self._infer_risk_from_telemetry(
+                        n_pkts=n_pkts,
+                        syn_ratio=float(syn_sum / max(1, n_pkts)),
+                        rst_ratio=float(rst_sum / max(1, n_pkts)),
+                        high_port_ratio=high_port_ratio,
+                        port_scan_score=port_scan_score,
+                        total_bytes=float(tot_bytes),
+                    )
 
                 rec = {
                     'window_id': w_idx,
@@ -391,6 +400,27 @@ class TrafficParser:
             window_records.append(rec)
 
         return pd.DataFrame(window_records)
+
+    @staticmethod
+    def _infer_risk_from_telemetry(
+        n_pkts: int,
+        syn_ratio: float,
+        rst_ratio: float,
+        high_port_ratio: float,
+        port_scan_score: float,
+        total_bytes: float,
+    ) -> float:
+        if n_pkts == 0:
+            return 0.0
+
+        signals = [
+            min(syn_ratio * 0.8, 0.8),
+            min(rst_ratio * 0.6, 0.6),
+            min(high_port_ratio * 0.8, 0.8),
+            min(port_scan_score / 10.0, 0.8),
+            min(total_bytes / 100000.0, 0.5),
+        ]
+        return round(max(0.05, max(signals)), 4)
 
     def _ensure_column(self, df: pd.DataFrame, target: str, default_val: Any) -> None:
         """Helper to map alternative column names to standardized names."""

@@ -56,6 +56,21 @@ def test_traffic_parser_correctness():
     # Assert window 2 (20s - 30s) captured the second packet
     assert df_win.iloc[2]['total_bytes'] == 500, "Parser failed to extract second window data."
 
+def test_unlabeled_traffic_gets_inferred_risk():
+    parser = TrafficParser(window_size_sec=10.0)
+    data = pd.DataFrame([{
+        'timestamp': '2023-01-01 00:00:01', 'src_ip': '1.1.1.1', 'dst_ip': '2.2.2.2',
+        'src_port': 40000, 'dst_port': 40001, 'protocol': 6,
+        'syn_flag': 1, 'ack_flag': 0, 'fin_flag': 0, 'rst_flag': 0, 'psh_flag': 0, 'urg_flag': 0,
+        'flow_duration': 0.1, 'tot_bytes': 1000, 'tot_pkts': 1,
+        'flow_iat_mean': 0.05, 'flow_iat_std': 0.01, 'flow_iat_max': 0.08,
+        'ttl': 64, 'tcp_win': 1024, 'ip_frag': 0, 'payload_bytes': 500, 'retrans_count': 0
+    }])
+
+    df_win = parser.create_time_windows(parser.parse_csv(data))
+
+    assert 0.0 < df_win.iloc[0]['target_risk_score'] <= 1.0
+
 def test_world_model_forecast():
     gen = SyntheticAttackGenerator(seed=42)
     _, df_win = gen.generate_scenario("APT Multi-Stage Campaign", num_windows=15)
