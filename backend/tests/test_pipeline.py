@@ -60,7 +60,7 @@ def test_world_model_forecast():
     gen = SyntheticAttackGenerator(seed=42)
     _, df_win = gen.generate_scenario("APT Multi-Stage Campaign", num_windows=15)
 
-    forecaster = WorldModelForecaster(history_len=4)
+    forecaster = WorldModelForecaster(history_len=8)
     forecaster.fit(df_win, epochs=10)
 
     assert forecaster.is_fitted, "Forecaster should be marked as fitted after training."
@@ -116,7 +116,7 @@ def test_explainer():
     gen = SyntheticAttackGenerator(seed=42)
     _, df_win = gen.generate_scenario("APT Multi-Stage Campaign", num_windows=10)
 
-    forecaster = WorldModelForecaster(history_len=4)
+    forecaster = WorldModelForecaster(history_len=8)
     forecaster.fit(df_win, epochs=2)
 
     explainer = AttackExplainer(

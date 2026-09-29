@@ -1,10 +1,9 @@
 import logging
+import os
 import numpy as np
-import pandas as pd
-from fastapi import APIRouter, Depends, HTTPException
-from backend.models.loader import get_baseline
-from backend.src.world_model import BenchmarkEvaluator
+from fastapi import APIRouter, HTTPException
 from backend.schemas.requests import BenchmarkRequest, BenchmarkResponse
+from backend.src.world_model import BenchmarkEvaluator
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -17,38 +16,38 @@ EMPTY_BENCHMARK = {
 }
 
 @router.post("/benchmark", response_model=BenchmarkResponse)
-def get_benchmark(req: BenchmarkRequest, baseline=Depends(get_baseline)):
-    if baseline is None:
-        raise HTTPException(status_code=503, detail="Baseline model not loaded. Server is still initializing.")
-
-    if not req.windows or len(req.windows) < req.K:
+def get_benchmark(req: BenchmarkRequest):
+    if not req.windows or len(req.windows) < 2 or len(req.risk_trajectory) == 0:
         return EMPTY_BENCHMARK
-    
+
     try:
-        df_win = pd.DataFrame(req.windows)
-        
-        wm_preds = np.array(req.risk_trajectory)
-        
-        # Baseline predictions for the same future window (static)
-        base_preds = baseline.predict_proba(df_win)[-req.K:]
-        
-        if 'is_attack' in df_win.columns:
-            gt_binary = df_win['is_attack'].values[-req.K:]
-        elif 'target_risk_score' in df_win.columns:
-            gt_binary = (df_win['target_risk_score'].values[-req.K:] > 0.30).astype(int)
-        else:
-            gt_binary = np.zeros(req.K, dtype=int)
-        
-        bench_res = BenchmarkEvaluator.evaluate_comparison(
-            wm_preds, 
-            base_preds, 
-            gt_binary, 
-            threshold=req.threshold
+        gt = []
+        for window in req.windows:
+            if "is_attack" in window:
+                gt.append(int(bool(window["is_attack"])))
+            elif "target_risk_score" in window:
+                gt.append(int(float(window["target_risk_score"]) > 0.30))
+            else:
+                gt.append(0)
+
+        wm_probs = np.asarray(req.risk_trajectory[: len(req.windows)], dtype=float)
+        if wm_probs.size == 0:
+            return EMPTY_BENCHMARK
+
+        baseline_probs = np.asarray([
+            float(window.get("target_risk_score", 0.0)) for window in req.windows[: len(wm_probs)]
+        ], dtype=float)
+
+        if len(gt) < 2 or len(wm_probs) < 2 or len(baseline_probs) < 2:
+            return EMPTY_BENCHMARK
+
+        metrics = BenchmarkEvaluator.evaluate_comparison(
+            world_model_preds=wm_probs,
+            baseline_preds=baseline_probs,
+            ground_truth=np.asarray(gt[: len(wm_probs)], dtype=int),
+            threshold=req.threshold,
         )
-        
-        return bench_res
-    except (KeyError, ValueError) as e:
-        raise HTTPException(status_code=422, detail=f"Benchmark evaluation failed — invalid input: {e}")
+        return metrics
     except Exception as e:
-        logger.exception("Benchmark evaluation failed")
+        logger.exception("Failed to evaluate benchmark comparison")
         raise HTTPException(status_code=500, detail=f"Benchmark evaluation failed: {e}")

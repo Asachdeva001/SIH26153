@@ -384,6 +384,15 @@ export default function DashboardPage() {
           ) : <MetricCard title="SOC RISK PRIORITY LEVEL" value="--" subtitle="--" />}
         </div>
 
+        <div className="mb-6 rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm">
+          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">How to read this dashboard</div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm text-slate-700">
+            <div className="rounded-xl bg-slate-50 p-3 border border-slate-200"><strong>1.</strong> Start with the forecast timeline to see risk direction.</div>
+            <div className="rounded-xl bg-slate-50 p-3 border border-slate-200"><strong>2.</strong> Check the MITRE tracker to understand the attack stage in plain language.</div>
+            <div className="rounded-xl bg-slate-50 p-3 border border-slate-200"><strong>3.</strong> Use SOC response and XAI to decide what action to take next.</div>
+          </div>
+        </div>
+
         {/* Tabs */}
         <TabNav tabs={TABS} activeTab={activeTab} setActiveTab={setActiveTab} />
 

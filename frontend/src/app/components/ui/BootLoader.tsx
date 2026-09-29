@@ -2,20 +2,6 @@
 
 import { useEffect } from 'react';
 
-// ldrs uses web components, must be registered client-side
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      'l-quantum': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement> & {
-        size?: string; speed?: string; color?: string;
-      }, HTMLElement>;
-      'l-grid': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement> & {
-        size?: string; speed?: string; color?: string;
-      }, HTMLElement>;
-    }
-  }
-}
-
 interface BootLoaderProps {
   message?: string;
   subMessage?: string;

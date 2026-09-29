@@ -27,8 +27,7 @@ class PyTorchTransitionLSTM(nn.Module):
         self.risk_head = nn.Sequential(
             nn.Linear(hidden_dim, 32),
             nn.ReLU(),
-            nn.Linear(32, 1),
-            nn.Sigmoid()
+            nn.Linear(32, 1)
         )
 
     def forward(self, x):
@@ -43,7 +42,7 @@ class WorldModelForecaster:
     World Model Dynamic Forecasting Engine.
     Learns P(S_{t+1} | S_t) transition dynamics and performs K-step forward simulation.
     """
-    def __init__(self, hidden_dim: int = 64, history_len: int = 4):
+    def __init__(self, hidden_dim: int = 64, history_len: int = 8):
         self.feature_cols = FEATURE_COLUMNS
         self.input_dim = len(self.feature_cols)
         self.hidden_dim = hidden_dim
@@ -56,7 +55,7 @@ class WorldModelForecaster:
         self.scale_ = np.ones(self.input_dim)
         self.is_fitted = False
 
-    def fit(self, df_windows: pd.DataFrame, epochs: int = 35, lr: float = 0.005):
+    def fit(self, df_windows: pd.DataFrame, epochs: int = 60, lr: float = 0.003, batch_size: int = 256):
         """Fits the World Model on sequential time window state vectors."""
         X_raw = df_windows[self.feature_cols].values.astype(np.float32)
 
@@ -90,19 +89,25 @@ class WorldModelForecaster:
 
         from torch.utils.data import DataLoader, TensorDataset
 
+        target_risks_arr = np.asarray(target_risks, dtype=np.float32)
         seq_tensor = torch.tensor(np.array(sequences), dtype=torch.float32)
         st_tensor = torch.tensor(np.array(target_states), dtype=torch.float32)
-        rk_tensor = torch.tensor(np.array(target_risks), dtype=torch.float32).unsqueeze(1)
+        rk_tensor = torch.tensor(target_risks_arr, dtype=torch.float32).unsqueeze(1)
 
         dataset = TensorDataset(seq_tensor, st_tensor, rk_tensor)
-        batch_size = 1024
         dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
         optimizer = optim.Adam(self.model.parameters(), lr=lr)
         criterion_state = nn.MSELoss()
-        criterion_risk = nn.BCELoss()
+        binary_risk = target_risks_arr > 0.30
+        pos_frac = max(float(binary_risk.mean()), 1e-4)
+        pos_weight_val = (1 - pos_frac) / pos_frac
+        criterion_risk = nn.BCEWithLogitsLoss(
+            pos_weight=torch.tensor([pos_weight_val], device=self.device)
+        )
 
         self.model.train()
+        logger.info("Risk positive fraction: %.6f; positive weight: %.6f", pos_frac, pos_weight_val)
         logger.info("Starting training on %d sequences with batch size %d...", len(sequences), batch_size)
         loss_history = []
         for ep in range(epochs):
@@ -117,7 +122,7 @@ class WorldModelForecaster:
 
                 loss_st = criterion_state(pred_st, batch_st)
                 loss_rk = criterion_risk(pred_rk, batch_rk)
-                loss = loss_st + 2.0 * loss_rk
+                loss = loss_st / self.input_dim + 5.0 * loss_rk
 
                 loss.backward()
                 optimizer.step()
@@ -203,7 +208,7 @@ class WorldModelForecaster:
                 pred_st_tensor, pred_rk_tensor = self.model(seq_tensor)
 
                 pred_st = pred_st_tensor.cpu().numpy()[0]
-                pred_rk = float(pred_rk_tensor.cpu().numpy()[0, 0])
+                pred_rk = float(torch.sigmoid(pred_rk_tensor).cpu().numpy()[0, 0])
 
                 seq_buffer.append(pred_st)
 

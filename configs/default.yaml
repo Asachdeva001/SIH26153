@@ -1,6 +1,6 @@
 training:
   seed: 42
-  history_len: 4
+  history_len: 8
   hidden_dim: 64
   epochs: 35
   learning_rate: 0.005

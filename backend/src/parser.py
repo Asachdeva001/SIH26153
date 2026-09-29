@@ -11,18 +11,21 @@ DEFAULT_UNKNOWN_RISK = 0.5
 
 # Feature column definitions for state vectors S_t
 LABEL_TO_RISK = {
-    "BENIGN": 0.0,
-    "Normal": 0.0,
-    "Reconnaissance": 0.2,
-    "Recon": 0.2,
-    "Infiltration": 0.5,
-    "Bot": 0.8,
-    "Botnet": 0.8,
-    "DoS": 0.9,
-    "DDoS": 0.9,
-    "Brute Force": 0.7,
-    "PortScan": 0.3,
-    "Web Attack": 0.6
+    "Benign": 0.0,
+    "FTP-BruteForce": 0.7,
+    "SSH-Bruteforce": 0.7,
+    "DoS attacks-GoldenEye": 0.9,
+    "DoS attacks-Slowloris": 0.9,
+    "DoS attacks-SlowHTTPTest": 0.9,
+    "DoS attacks-Hulk": 0.9,
+    "DDOS attack-LOIC-UDP": 0.9,
+    "DDOS attack-HOIC": 0.9,
+    "DDoS attacks-LOIC-HTTP": 0.9,
+    "Brute Force -Web": 0.7,
+    "Brute Force -XSS": 0.7,
+    "SQL Injection": 0.7,
+    "Infilteration": 0.5,
+    "Bot": 0.8
 }
 
 FEATURE_COLUMNS = [
@@ -78,6 +81,10 @@ class TrafficParser:
         # Clean column names (strip whitespace, lowercase)
         df.columns = [str(col).strip().lower().replace(' ', '_').replace('/', '_') for col in df.columns]
 
+        for candidate_label_col in ['label', 'attack_cat']:
+            if candidate_label_col in df.columns:
+                df = df[df[candidate_label_col].astype(str).str.strip().str.lower() != 'label'].reset_index(drop=True)
+
         # Standardize timestamp
         timestamp_col = None
         for candidate in ['timestamp', 'time', 'first_seen', 'start_time', 'ts']:
@@ -127,6 +134,21 @@ class TrafficParser:
         self._ensure_column(df, 'ip_frag', 0)
         self._ensure_column(df, 'payload_bytes', 100)
         self._ensure_column(df, 'retrans_count', 0)
+
+        numeric_cols = [
+            'src_port', 'dst_port', 'protocol', 'syn_flag', 'ack_flag',
+            'fin_flag', 'rst_flag', 'psh_flag', 'urg_flag', 'flow_duration',
+            'tot_bytes', 'tot_pkts', 'flow_iat_mean', 'flow_iat_std',
+            'flow_iat_max', 'ttl', 'tcp_win', 'ip_frag', 'payload_bytes',
+            'retrans_count'
+        ]
+        for col in numeric_cols:
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+        before = len(df)
+        df = df.dropna(subset=numeric_cols).reset_index(drop=True)
+        dropped = before - len(df)
+        if dropped > 0:
+            logger.info("Dropped %d malformed/non-numeric rows.", dropped)
 
         return df
 

@@ -56,7 +56,7 @@ def main():
         config = {'training': {}}
     
     seed = config['training'].get('seed', 42)
-    history_len = config['training'].get('history_len', 4)
+    history_len = config['training'].get('history_len', 8)
     hidden_dim = config['training'].get('hidden_dim', 64)
     epochs = config['training'].get('epochs', 35)
     lr = config['training'].get('learning_rate', 0.005)
